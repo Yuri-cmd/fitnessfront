@@ -37,102 +37,115 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget build(BuildContext context) {
     final isLoading = context.watch<AuthController>().isLoading;
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          // Subtle glow
-          Positioned(
-            top: -150,
-            right: -100,
-            child: _buildBlurCircle(400, AppColors.primary.withValues(alpha: 0.1)),
-          ),
-          Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24.0),
-              child: Container(
-                padding: const EdgeInsets.all(32),
-                decoration: BoxDecoration(
-                  color: AppColors.surface,
-                  borderRadius: BorderRadius.circular(24),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 20,
-                      offset: const Offset(0, 10),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.fitness_center,
-                      size: 64,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(height: 16),
-                    const Text(
-                      'PODER STACK',
-                      style: TextStyle(
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textTitle,
-                        letterSpacing: 2,
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            // Subtle glow
+            Positioned(
+              top: -150,
+              right: -100,
+              child: _buildBlurCircle(
+                400,
+                AppColors.primary.withValues(alpha: 0.1),
+              ),
+            ),
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(24.0),
+                child: Container(
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: AppColors.surface,
+                    borderRadius: BorderRadius.circular(24),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.05),
+                        blurRadius: 20,
+                        offset: const Offset(0, 10),
                       ),
-                    ),
-                    const Text(
-                      'DOMINA TU ENTRENAMIENTO',
-                      style: TextStyle(
-                        fontSize: 10,
-                        color: Colors.grey,
-                        letterSpacing: 2,
+                    ],
+                  ),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.fitness_center,
+                        size: 64,
+                        color: AppColors.primary,
                       ),
-                    ),
-                    const SizedBox(height: 48),
-                    TextField(
-                      controller: _emailController,
-                      style: const TextStyle(color: AppColors.textTitle),
-                      decoration: const InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: Icon(Icons.email_outlined),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _passwordController,
-                      obscureText: true,
-                      style: const TextStyle(color: AppColors.textTitle),
-                      decoration: const InputDecoration(
-                        labelText: 'Contraseña',
-                        prefixIcon: Icon(Icons.lock_outline),
-                      ),
-                    ),
-                    const SizedBox(height: 32),
-                    NeonButton(
-                      label: 'ENTRAR',
-                      onTap: _login,
-                      isLoading: isLoading,
-                      colors: const [AppColors.primary, Color(0xFF8BB52E)],
-                    ),
-                    const SizedBox(height: 24),
-                    TextButton(
-                      onPressed: () {},
-                      child: const Text(
-                        'CREAR CUENTA',
+                      const SizedBox(height: 16),
+                      const Text(
+                        'PODER STACK',
                         style: TextStyle(
-                          color: AppColors.primary,
+                          fontSize: 32,
                           fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
+                          color: AppColors.textTitle,
+                          letterSpacing: 2,
                         ),
                       ),
-                    ),
-                  ],
+                      const Text(
+                        'DOMINA TU ENTRENAMIENTO',
+                        style: TextStyle(
+                          fontSize: 10,
+                          color: Colors.grey,
+                          letterSpacing: 2,
+                        ),
+                      ),
+                      const SizedBox(height: 48),
+                      TextField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.email],
+                        style: const TextStyle(color: AppColors.textTitle),
+                        decoration: const InputDecoration(
+                          labelText: 'Email',
+                          hintText: 'ejemplo@correo.com',
+                          prefixIcon: Icon(Icons.email_outlined),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        textInputAction: TextInputAction.done,
+                        autofillHints: const [AutofillHints.password],
+                        onSubmitted: (_) => _login(),
+                        style: const TextStyle(color: AppColors.textTitle),
+                        decoration: const InputDecoration(
+                          labelText: 'Contraseña',
+                          prefixIcon: Icon(Icons.lock_outline),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      NeonButton(
+                        label: 'ENTRAR',
+                        onTap: _login,
+                        isLoading: isLoading,
+                        colors: const [AppColors.primary, Color(0xFF8BB52E)],
+                      ),
+                      const SizedBox(height: 24),
+                      TextButton(
+                        onPressed: () {},
+                        child: const Text(
+                          'CREAR CUENTA',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -144,13 +157,7 @@ class _LoginScreenState extends State<LoginScreen> {
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: color,
-        boxShadow: [
-          BoxShadow(
-            color: color,
-            blurRadius: 100,
-            spreadRadius: 50,
-          ),
-        ],
+        boxShadow: [BoxShadow(color: color, blurRadius: 100, spreadRadius: 50)],
       ),
     );
   }

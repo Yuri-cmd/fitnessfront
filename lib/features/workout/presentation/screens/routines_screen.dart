@@ -15,6 +15,7 @@ class RoutinesScreen extends StatefulWidget {
 
 class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProviderStateMixin {
   late TabController _tabController;
+  DateTime _selectedDate = DateTime.now();
 
   @override
   void initState() {
@@ -71,10 +72,73 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
                     ),
 
           // Pestaña 2: Historial / Línea de tiempo
-          workout.workoutLogs.isEmpty
-              ? _buildEmptyHistory()
-              : _buildTimeline(workout.workoutLogs),
+          Column(
+            children: [
+              _buildHorizontalCalendar(),
+              const Divider(height: 1),
+              Expanded(
+                child: workout.workoutLogs.isEmpty
+                    ? _buildEmptyHistory()
+                    : _buildTimeline(workout.workoutLogs),
+              ),
+            ],
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildHorizontalCalendar() {
+    // Generar los 7 días de la semana actual
+    final now = DateTime.now();
+    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    
+    return Container(
+      height: 100,
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: ListView.builder(
+        scrollDirection: Axis.horizontal,
+        itemCount: 7,
+        itemBuilder: (context, index) {
+          final day = firstDayOfWeek.add(Duration(days: index));
+          final isSelected = day.day == _selectedDate.day && day.month == _selectedDate.month;
+          final isToday = day.day == now.day && day.month == now.month;
+
+          return GestureDetector(
+            onTap: () => setState(() => _selectedDate = day),
+            child: Container(
+              width: 55,
+              margin: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                color: isSelected ? AppColors.primary : Colors.transparent,
+                borderRadius: BorderRadius.circular(16),
+                border: isToday && !isSelected ? Border.all(color: AppColors.primary, width: 1) : null,
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    DateFormat('E', 'es_ES').format(day).substring(0, 3).toLowerCase(),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.grey,
+                      fontSize: 12,
+                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    day.day.toString(),
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : AppColors.textTitle,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
       ),
     );
   }
@@ -102,37 +166,49 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
           const SizedBox(height: 16),
           const Text('Historial vacío', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
           const Text('Tus entrenamientos completados aparecerán aquí'),
+          const SizedBox(height: 16),
+          TextButton(
+            onPressed: () => context.read<WorkoutController>().loadWorkoutHistory(),
+            child: const Text('REINTENTAR CARGAR'),
+          )
         ],
       ),
     );
   }
 
   Widget _buildTimeline(List<dynamic> logs) {
+    // Filtrar logs por la fecha seleccionada
+    final filteredLogs = logs.where((log) {
+      final logDate = DateTime.parse(log['completed_at']).toLocal();
+      return logDate.day == _selectedDate.day && 
+             logDate.month == _selectedDate.month && 
+             logDate.year == _selectedDate.year;
+    }).toList();
+
+    if (filteredLogs.isEmpty) {
+      return const Center(child: Text('No entrenaste este día', style: TextStyle(color: Colors.grey)));
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.all(20),
-      itemCount: logs.length,
+      itemCount: filteredLogs.length,
       itemBuilder: (context, index) {
-        final log = logs[index];
-        final DateTime date = DateTime.parse(log['completed_at']);
+        final log = filteredLogs[index];
+        final DateTime date = DateTime.parse(log['completed_at']).toLocal();
         final String formattedDate = DateFormat('EEEE, d MMMM', 'es_ES').format(date);
         final String formattedTime = DateFormat('jm', 'es_ES').format(date);
         
         return IntrinsicHeight(
           child: Row(
             children: [
-              // Línea de tiempo
               Column(
                 children: [
-                  Container(
-                    width: 12, height: 12,
-                    decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle),
-                  ),
-                  if (index != logs.length - 1)
+                  Container(width: 12, height: 12, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
+                  if (index != filteredLogs.length - 1)
                     Expanded(child: Container(width: 2, color: AppColors.primary.withValues(alpha: 0.3))),
                 ],
               ),
               const SizedBox(width: 20),
-              // Contenido del log
               Expanded(
                 child: Container(
                   margin: const EdgeInsets.only(bottom: 24),
@@ -168,10 +244,9 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
   }
 
   Widget _buildRoutineCard(dynamic routine, WorkoutController workout) {
-    // Verificar si se completó hoy
     final isDoneToday = workout.workoutLogs.any((log) {
       if (log['routine_id'] != routine['id']) return false;
-      final logDate = DateTime.parse(log['completed_at']);
+      final logDate = DateTime.parse(log['completed_at']).toLocal();
       final now = DateTime.now();
       return logDate.year == now.year && logDate.month == now.month && logDate.day == now.day;
     });
@@ -192,7 +267,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: const Text('¡HECHA!', style: TextStyle(color: AppColors.dark, fontWeight: FontWeight.bold, fontSize: 10)),
+                child: Text('¡HECHA!', style: TextStyle(color: AppColors.textTitle, fontWeight: FontWeight.bold, fontSize: 10)),
               ),
             IconButton(
               icon: const Icon(Icons.edit_note_outlined, color: AppColors.primary),
@@ -211,7 +286,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
         children: [
           ...?routine['exercises']?.map<Widget>((ex) => ListTile(
                 title: Text(ex['name'] ?? 'S/N'),
-                subtitle: Text('${ex['pivot']['sets']} series x ${ex['reps'] ?? ex['pivot']?['reps'] ?? 0} reps'),
+                subtitle: Text('${ex['pivot']['sets']} series x ${ex['pivot']['reps'] ?? 0} reps'),
                 trailing: const Icon(Icons.check_circle_outline),
               )),
           Padding(

@@ -1,7 +1,9 @@
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import '../data/services/workout_service.dart';
+import '../data/services/goals_service.dart';
 import '../presentation/controllers/workout_controller.dart';
+import '../presentation/controllers/goals_controller.dart';
 import '../../../core/network/dio_client.dart';
 
 class WorkoutBinding {
@@ -9,9 +11,16 @@ class WorkoutBinding {
     ProxyProvider<DioClient, WorkoutService>(
       update: (_, dioClient, __) => WorkoutService(dioClient),
     ),
+    ProxyProvider<DioClient, GoalsService>(
+      update: (_, dio, __) => GoalsService(dio.dio),
+    ),
     ChangeNotifierProxyProvider<WorkoutService, WorkoutController>(
       create: (context) => WorkoutController(context.read<WorkoutService>()),
-      update: (_, service, previous) => previous ?? WorkoutController(service),
+      update: (_, service, controller) => controller ?? WorkoutController(service),
+    ),
+    ChangeNotifierProxyProvider<GoalsService, GoalsController>(
+      create: (context) => GoalsController(context.read<GoalsService>()),
+      update: (_, service, controller) => controller ?? GoalsController(service),
     ),
   ];
 }

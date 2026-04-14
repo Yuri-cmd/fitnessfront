@@ -6,6 +6,7 @@ import '../../../../features/auth/presentation/controllers/auth_controller.dart'
 import '../../../../features/workout/presentation/screens/routines_screen.dart';
 import '../../../../features/metrics/presentation/screens/weight_metrics_screen.dart';
 import '../../../../features/workout/presentation/controllers/workout_controller.dart';
+import '../../../../features/workout/presentation/screens/goals_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -159,17 +160,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ),
         _buildModuleCard(
           context,
-          'DIETA',
-          Icons.restaurant,
-          AppColors.alert,
-          () {},
-        ),
-        _buildModuleCard(
-          context,
           'METAS',
           Icons.emoji_events,
           Colors.orange,
-          () {},
+          () => Navigator.push(context, MaterialPageRoute(builder: (context) => const GoalsScreen())),
         ),
       ],
     );

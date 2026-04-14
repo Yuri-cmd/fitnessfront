@@ -36,11 +36,12 @@ class WorkoutController with ChangeNotifier {
     try {
       final response = await _workoutService.getWorkoutHistory();
       if (response.statusCode == 200) {
+        debugPrint("Workout History Loaded: ${response.data}");
         _workoutLogs = response.data;
         notifyListeners();
       }
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint("Error loading history: $e");
     }
   }
 
