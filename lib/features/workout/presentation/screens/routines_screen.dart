@@ -306,14 +306,17 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
   }
 
   void _startTraining(dynamic routine) async {
-    final completed = await Navigator.push(
+    final result = await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => TrainingSessionScreen(routine: routine)),
     );
 
-    if (completed == true) {
+    if (result is List && mounted) {
+      await context.read<WorkoutController>().completeRoutine(
+            routine['id'],
+            List<Map<String, dynamic>>.from(result),
+          );
       if (mounted) {
-        await context.read<WorkoutController>().completeRoutine(routine['id']);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('¡Entrenamiento guardado con éxito!')),
         );

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/neon_button.dart';
 import '../controllers/auth_controller.dart';
+import 'privacy_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -136,6 +137,21 @@ class _LoginScreenState extends State<LoginScreen> {
                             color: AppColors.primary,
                             fontWeight: FontWeight.bold,
                             letterSpacing: 1.2,
+                          ),
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const PrivacyScreen(),
+                          ),
+                        ),
+                        child: const Text(
+                          'Política de Privacidad',
+                          style: TextStyle(
+                            color: Colors.grey,
+                            fontSize: 12,
                           ),
                         ),
                       ),

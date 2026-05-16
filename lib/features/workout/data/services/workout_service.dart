@@ -10,8 +10,14 @@ class WorkoutService {
     return await _dio.get('/routines');
   }
 
-  Future<Response> completeRoutine(int routineId) async {
-    return await _dio.post('/routines/$routineId/complete');
+  Future<Response> completeRoutine(
+    int routineId, [
+    List<Map<String, dynamic>>? sets,
+  ]) async {
+    return await _dio.post(
+      '/routines/$routineId/complete',
+      data: sets != null && sets.isNotEmpty ? {'sets': sets} : null,
+    );
   }
 
   Future<Response> getExercises() async {

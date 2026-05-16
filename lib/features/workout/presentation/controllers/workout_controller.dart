@@ -142,9 +142,12 @@ class WorkoutController with ChangeNotifier {
     }
   }
 
-  Future<void> completeRoutine(int id) async {
+  Future<void> completeRoutine(
+    int id, [
+    List<Map<String, dynamic>>? sets,
+  ]) async {
     try {
-      await _workoutService.completeRoutine(id);
+      await _workoutService.completeRoutine(id, sets);
       await loadRoutines();
       await loadWeeklyProgress();
       await loadWorkoutHistory();

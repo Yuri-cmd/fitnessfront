@@ -4,6 +4,7 @@ import 'core/bindings/core_binding.dart';
 import 'features/auth/bindings/auth_binding.dart';
 import 'features/metrics/bindings/metrics_binding.dart';
 import 'features/workout/bindings/workout_binding.dart';
+import 'features/stats/bindings/stats_binding.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
@@ -20,6 +21,7 @@ void main() async {
         ...AuthBinding.providers,
         ...MetricsBinding.providers,
         ...WorkoutBinding.providers,
+        ...StatsBinding.providers,
       ],
       child: const FitTrackerApp(),
     ),
