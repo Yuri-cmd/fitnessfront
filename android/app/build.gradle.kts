@@ -15,7 +15,7 @@ if (keyPropertiesFile.exists()) {
 }
 
 android {
-    namespace = "com.antigravity.fittracker.fit_tracker_app"
+    namespace = "com.fittracker.powerstack"
     compileSdk = 35
     ndkVersion = flutter.ndkVersion
 
@@ -40,7 +40,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.antigravity.fittracker.fit_tracker_app"
+        applicationId = "com.fittracker.powerstack"
         minSdk = 21
         targetSdk = 35
         versionCode = flutter.versionCode

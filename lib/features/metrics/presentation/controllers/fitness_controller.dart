@@ -2,10 +2,12 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../../data/services/metrics_service.dart';
 import '../../../auth/data/services/auth_service.dart';
+import '../../../../core/services/health_service.dart';
 
 class FitnessController with ChangeNotifier {
   final MetricsService _metricsService;
-  final AuthService _authService; // Para el perfil
+  final AuthService _authService;
+  final HealthService _healthService;
 
   double? _height;
   double? _weight;
@@ -13,7 +15,7 @@ class FitnessController with ChangeNotifier {
   List<dynamic> _weightLogs = [];
   bool _isLoading = false;
 
-  FitnessController(this._metricsService, this._authService);
+  FitnessController(this._metricsService, this._authService, this._healthService);
 
   double? get height => _height;
   double? get weight => _weight;
@@ -83,9 +85,15 @@ class FitnessController with ChangeNotifier {
       _weight = weight;
       calculateBmi();
       await loadWeightLogs();
+      // Sincronizar con Apple Health en segundo plano
+      _healthService.saveWeight(weight);
     } catch (e) {
       debugPrint(e.toString());
     }
+  }
+
+  Future<double?> getWeightFromHealth() async {
+    return _healthService.getLatestWeight();
   }
 
   Future<void> loadWeightLogs() async {

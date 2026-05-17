@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import '../../data/services/workout_service.dart';
+import '../../../../core/services/health_service.dart';
 
 class WorkoutController with ChangeNotifier {
   final WorkoutService _workoutService;
+  final HealthService _healthService;
 
-  WorkoutController(this._workoutService);
+  WorkoutController(this._workoutService, this._healthService);
 
   List<dynamic> _routines = [];
   List<dynamic> _availableExercises = [];
@@ -145,12 +147,16 @@ class WorkoutController with ChangeNotifier {
   Future<void> completeRoutine(
     int id, [
     List<Map<String, dynamic>>? sets,
+    DateTime? startTime,
   ]) async {
+    final start = startTime ?? DateTime.now();
     try {
       await _workoutService.completeRoutine(id, sets);
       await loadRoutines();
       await loadWeeklyProgress();
       await loadWorkoutHistory();
+      // Guardar entrenamiento en Apple Health en segundo plano
+      _healthService.saveWorkout(start: start, end: DateTime.now());
     } catch (e) {
       debugPrint(e.toString());
     }

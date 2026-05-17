@@ -1,6 +1,7 @@
 import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import '../../../core/network/dio_client.dart';
+import '../../../core/services/health_service.dart';
 import '../data/services/metrics_service.dart';
 import '../data/services/measurement_service.dart';
 import '../presentation/controllers/fitness_controller.dart';
@@ -12,13 +13,14 @@ class MetricsBinding {
     ProxyProvider<DioClient, MetricsService>(
       update: (context, dioClient, previous) => MetricsService(dioClient),
     ),
-    ChangeNotifierProxyProvider2<MetricsService, AuthService, FitnessController>(
+    ChangeNotifierProxyProvider3<MetricsService, AuthService, HealthService, FitnessController>(
       create: (context) => FitnessController(
         context.read<MetricsService>(),
         context.read<AuthService>(),
+        context.read<HealthService>(),
       ),
-      update: (context, metricsService, authService, previous) =>
-          previous ?? FitnessController(metricsService, authService),
+      update: (context, metricsService, authService, healthService, previous) =>
+          previous ?? FitnessController(metricsService, authService, healthService),
     ),
     ProxyProvider<DioClient, MeasurementService>(
       update: (_, dioClient, __) => MeasurementService(dioClient),
