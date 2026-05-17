@@ -5,6 +5,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../controllers/workout_controller.dart';
 import 'create_routine_screen.dart';
 import 'training_session_screen.dart';
+import 'one_rm_screen.dart';
 
 class RoutinesScreen extends StatefulWidget {
   const RoutinesScreen({super.key});
@@ -35,6 +36,16 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
     return Scaffold(
       appBar: AppBar(
         title: const Text('RUTINAS'),
+        actions: [
+          IconButton(
+            tooltip: 'Calculadora 1RM',
+            icon: const Icon(Icons.calculate_outlined, color: AppColors.primary),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const OneRmScreen()),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,

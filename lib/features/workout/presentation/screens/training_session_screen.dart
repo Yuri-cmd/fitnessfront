@@ -288,7 +288,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
               width: 36,
               height: 36,
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).colorScheme.surface,
                 borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.close, size: 18, color: Colors.grey),
@@ -305,7 +305,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Column(
@@ -358,7 +358,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
             child: LinearProgressIndicator(
               value: _progressPct,
               minHeight: 5,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               color: AppColors.primary,
             ),
           ),
@@ -379,7 +379,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
                       ? AppColors.primary.withValues(alpha: 0.4)
                       : isCurrent
                           ? AppColors.primary
-                          : Colors.grey.shade200,
+                          : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(3),
                 ),
               );
@@ -402,7 +402,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
         Container(
           width: double.infinity,
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: Theme.of(context).colorScheme.surface,
             borderRadius: BorderRadius.circular(24),
             boxShadow: [
               BoxShadow(
@@ -460,7 +460,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
                           decoration: BoxDecoration(
                             color: isDoneSet || isCurSet
                                 ? AppColors.primary
-                                : Colors.grey.shade200,
+                                : Theme.of(context).colorScheme.surfaceContainerHighest,
                             borderRadius: BorderRadius.circular(5),
                           ),
                         );
@@ -510,13 +510,13 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
                             hintStyle: TextStyle(
                                 fontSize: 36,
                                 fontWeight: FontWeight.w900,
-                                color: Colors.grey.shade300),
+                                color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.3)),
                             contentPadding: const EdgeInsets.symmetric(
                                 vertical: 16, horizontal: 48),
                             enabledBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
                               borderSide: BorderSide(
-                                  color: Colors.grey.shade200, width: 2),
+                                  color: Theme.of(context).colorScheme.surfaceContainerHighest, width: 2),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(16),
@@ -524,7 +524,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
                                   color: AppColors.primary, width: 2),
                             ),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: Theme.of(context).colorScheme.surfaceContainerLowest,
                           ),
                         ),
                         const Padding(
@@ -578,7 +578,9 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
                           label: const Text('Anterior'),
                           style: TextButton.styleFrom(
                             foregroundColor:
-                                _canGoBack ? Colors.grey : Colors.grey.shade300,
+                                _canGoBack
+                                ? Theme.of(context).colorScheme.onSurfaceVariant
+                                : Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.2),
                           ),
                         ),
                         TextButton.icon(
@@ -668,7 +670,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
             child: LinearProgressIndicator(
               value: restPct.clamp(0.0, 1.0),
               minHeight: 8,
-              backgroundColor: Colors.grey.shade200,
+              backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
               color: AppColors.primary,
             ),
           ),
@@ -769,7 +771,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(20),
               boxShadow: [
                 BoxShadow(

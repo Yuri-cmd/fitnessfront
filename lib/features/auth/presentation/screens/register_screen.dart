@@ -47,7 +47,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final success = await context.read<AuthController>().register(name, email, password);
+    final success =
+        await context.read<AuthController>().register(name, email, password);
     if (!success && mounted) {
       _showError('No se pudo crear la cuenta. El correo puede ya estar registrado.');
     }
@@ -72,23 +73,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
       child: Scaffold(
-        backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: AppColors.background,
-          elevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textTitle),
+            icon: const Icon(Icons.arrow_back_ios_new_rounded),
             onPressed: () => Navigator.pop(context),
           ),
-          title: const Text(
-            'CREAR CUENTA',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w900,
-              letterSpacing: 2,
-              color: AppColors.textTitle,
-            ),
-          ),
+          title: const Text('CREAR CUENTA'),
         ),
         body: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
@@ -96,7 +86,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 12),
-              // Ícono
               Center(
                 child: Container(
                   width: 72,
@@ -130,11 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
-                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
-                decoration: _inputDeco(
-                  hint: 'Tu nombre',
-                  icon: Icons.badge_outlined,
-                ),
+                decoration: _inputDeco(hint: 'Tu nombre', icon: Icons.badge_outlined),
               ),
               const SizedBox(height: 20),
               _label('CORREO ELECTRÓNICO'),
@@ -144,7 +129,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 keyboardType: TextInputType.emailAddress,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.email],
-                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
                 decoration: _inputDeco(
                   hint: 'ejemplo@correo.com',
                   icon: Icons.alternate_email_rounded,
@@ -158,7 +142,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 obscureText: _obscurePassword,
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.newPassword],
-                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
                 decoration: _inputDeco(
                   hint: 'Mínimo 8 caracteres',
                   icon: Icons.lock_outline_rounded,
@@ -168,7 +151,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: 20,
-                      color: AppColors.textBody,
                     ),
                     onPressed: () =>
                         setState(() => _obscurePassword = !_obscurePassword),
@@ -184,7 +166,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textInputAction: TextInputAction.done,
                 autofillHints: const [AutofillHints.newPassword],
                 onSubmitted: (_) => _register(),
-                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
                 decoration: _inputDeco(
                   hint: '••••••••',
                   icon: Icons.lock_outline_rounded,
@@ -194,7 +175,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           ? Icons.visibility_outlined
                           : Icons.visibility_off_outlined,
                       size: 20,
-                      color: AppColors.textBody,
                     ),
                     onPressed: () =>
                         setState(() => _obscureConfirm = !_obscureConfirm),
@@ -212,9 +192,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
+                  Text(
                     '¿Ya tienes cuenta? ',
-                    style: TextStyle(color: AppColors.textBody, fontSize: 13),
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 13,
+                    ),
                   ),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
@@ -241,10 +224,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         padding: const EdgeInsets.only(left: 2),
         child: Text(
           text,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 10,
             fontWeight: FontWeight.w700,
-            color: AppColors.textBody,
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
             letterSpacing: 1.5,
           ),
         ),
@@ -257,23 +240,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
   }) =>
       InputDecoration(
         hintText: hint,
-        hintStyle: TextStyle(color: AppColors.textBody.withValues(alpha: 0.5)),
-        prefixIcon: Icon(icon, size: 20, color: AppColors.textBody),
+        prefixIcon: Icon(icon, size: 20),
         suffixIcon: suffix,
-        filled: true,
-        fillColor: const Color(0xFFEEEEEE),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
-        ),
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       );
 }

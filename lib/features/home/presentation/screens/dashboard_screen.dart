@@ -10,7 +10,10 @@ import '../../../../features/workout/presentation/screens/goals_screen.dart';
 import '../../../../features/stats/presentation/screens/stats_screen.dart';
 import '../../../../features/stats/presentation/controllers/stats_controller.dart';
 import '../../../../features/wiki/presentation/screens/wiki_screen.dart';
+import '../../../../features/metrics/presentation/screens/body_measurements_screen.dart';
 import '../../../../features/water/presentation/controllers/water_controller.dart';
+import '../../../../core/theme/theme_controller.dart';
+import '../../../../core/services/version_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -29,6 +32,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       context.read<WorkoutController>().loadWeeklyProgress();
       context.read<WaterController>().loadTodayWater();
       context.read<StatsController>().loadAchievements();
+      VersionService.checkAndPrompt(context);
     });
   }
 
@@ -43,6 +47,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
       appBar: AppBar(
         title: const Text('POWER STACK'),
         actions: [
+          IconButton(
+            icon: Icon(
+              context.watch<ThemeController>().isDark
+                  ? Icons.light_mode_outlined
+                  : Icons.dark_mode_outlined,
+              color: AppColors.primary,
+            ),
+            onPressed: () => context.read<ThemeController>().toggle(),
+          ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: AppColors.primary),
             onPressed: () => _showUpdateProfileDialog(context, fitness),
@@ -373,6 +386,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
             MaterialPageRoute(builder: (_) => const WikiScreen()),
           ),
         ),
+        _buildModuleCard(
+          context,
+          'MEDIDAS',
+          Icons.straighten,
+          Colors.deepOrange,
+          () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const BodyMeasurementsScreen()),
+          ),
+        ),
       ],
     );
   }
@@ -389,7 +412,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       borderRadius: BorderRadius.circular(24),
       child: Container(
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -429,9 +452,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Colors.black12),
+        border: Border.all(color: Theme.of(context).dividerColor),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,

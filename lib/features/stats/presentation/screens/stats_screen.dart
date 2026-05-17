@@ -66,21 +66,10 @@ class _StatsScreenState extends State<StatsScreen> {
         ),
       );
 
-  Widget _card(Widget child) => Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: child,
+  Widget _card(Widget child) => Card(
+        margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(padding: const EdgeInsets.all(20), child: child),
       );
 
   Widget _emptyState(IconData icon, String msg) => Padding(
@@ -258,7 +247,9 @@ class _StatsScreenState extends State<StatsScreen> {
               final count = dateMap[dateStr] ?? 0;
               return Container(
                 decoration: BoxDecoration(
-                  color: count > 0 ? AppColors.primary : Colors.grey.shade200,
+                  color: count > 0
+                    ? AppColors.primary
+                    : Theme.of(context).colorScheme.surfaceContainerHighest,
                   borderRadius: BorderRadius.circular(2),
                 ),
               );
@@ -274,7 +265,8 @@ class _StatsScreenState extends State<StatsScreen> {
                 width: 10,
                 height: 10,
                 decoration: BoxDecoration(
-                    color: Colors.grey.shade200, borderRadius: BorderRadius.circular(2))),
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest,
+                    borderRadius: BorderRadius.circular(2))),
             const SizedBox(width: 4),
             Container(
                 width: 10,

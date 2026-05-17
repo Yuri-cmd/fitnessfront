@@ -2,7 +2,9 @@ import 'package:provider/provider.dart';
 import 'package:provider/single_child_widget.dart';
 import '../../../core/network/dio_client.dart';
 import '../data/services/metrics_service.dart';
+import '../data/services/measurement_service.dart';
 import '../presentation/controllers/fitness_controller.dart';
+import '../presentation/controllers/measurement_controller.dart';
 import '../../auth/data/services/auth_service.dart';
 
 class MetricsBinding {
@@ -17,6 +19,13 @@ class MetricsBinding {
       ),
       update: (context, metricsService, authService, previous) =>
           previous ?? FitnessController(metricsService, authService),
+    ),
+    ProxyProvider<DioClient, MeasurementService>(
+      update: (_, dioClient, __) => MeasurementService(dioClient),
+    ),
+    ChangeNotifierProxyProvider<MeasurementService, MeasurementController>(
+      create: (context) => MeasurementController(context.read<MeasurementService>()),
+      update: (_, service, controller) => controller ?? MeasurementController(service),
     ),
   ];
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/bindings/core_binding.dart';
+import 'core/theme/theme_controller.dart';
 import 'features/auth/bindings/auth_binding.dart';
 import 'features/metrics/bindings/metrics_binding.dart';
 import 'features/workout/bindings/workout_binding.dart';
@@ -14,10 +15,14 @@ import 'package:intl/date_symbol_data_local.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await initializeDateFormatting('es_ES', null);
+
+  final themeController = ThemeController();
+  await themeController.init();
+
   runApp(
     MultiProvider(
       providers: [
-        ...CoreBinding.providers,
+        ...CoreBinding.providers(themeController),
         ...AuthBinding.providers,
         ...MetricsBinding.providers,
         ...WorkoutBinding.providers,
@@ -33,13 +38,18 @@ class FitTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final themeMode = context.watch<ThemeController>().mode;
     return MaterialApp(
       title: 'Power Stack',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
       home: Consumer<AuthController>(
         builder: (context, auth, _) {
-          return auth.isAuthenticated ? const DashboardScreen() : const LoginScreen();
+          return auth.isAuthenticated
+              ? const DashboardScreen()
+              : const LoginScreen();
         },
       ),
     );

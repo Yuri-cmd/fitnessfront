@@ -56,5 +56,11 @@
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Power Stack enviará notificaciones para recordarte tus rutinas de entrenamiento.</string>
 
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>itms-apps</string>
+		<string>https</string>
+	</array>
+
 </dict>
 </plist>
