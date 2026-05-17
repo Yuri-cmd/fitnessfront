@@ -131,7 +131,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
             mainAxisSize: MainAxisSize.min,
             children: [
               DropdownButtonFormField<String>(
-                value: selectedType,
+                initialValue: selectedType,
                 items: const [
                   DropdownMenuItem(value: 'weight', child: Text('Peso Objetivo (kg)')),
                   DropdownMenuItem(value: 'workouts_weekly', child: Text('Sesiones Semanales')),
@@ -153,8 +153,9 @@ class _GoalsScreenState extends State<GoalsScreen> {
               onPressed: () async {
                 final value = double.tryParse(valueController.text);
                 if (value != null) {
+                  final navigator = Navigator.of(context);
                   await context.read<GoalsController>().createGoal(selectedType, value);
-                  if (mounted) Navigator.pop(context);
+                  navigator.pop();
                 }
               },
               child: const Text('GUARDAR'),

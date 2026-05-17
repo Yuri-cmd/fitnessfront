@@ -45,5 +45,16 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+
+	<!-- Privacy usage descriptions - required by App Store -->
+	<key>NSCameraUsageDescription</key>
+	<string>Power Stack necesita acceso a la cámara para actualizar tu foto de perfil.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>Power Stack necesita acceso a tu galería para seleccionar una foto de perfil.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>Power Stack necesita permiso para guardar imágenes en tu galería.</string>
+	<key>NSUserNotificationUsageDescription</key>
+	<string>Power Stack enviará notificaciones para recordarte tus rutinas de entrenamiento.</string>
+
 </dict>
 </plist>

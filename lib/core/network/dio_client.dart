@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
 
@@ -26,7 +27,7 @@ class DioClient {
         return handler.next(options);
       },
       onError: (e, handler) {
-        // Podrías manejar errores globales aquí
+        debugPrint('HTTP ${e.response?.statusCode} → ${e.requestOptions.method} ${e.requestOptions.path}');
         return handler.next(e);
       },
     ));

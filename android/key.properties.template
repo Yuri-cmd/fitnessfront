@@ -1,0 +1,4 @@
+storePassword=TU_KEYSTORE_PASSWORD
+keyPassword=TU_KEY_PASSWORD
+keyAlias=TU_KEY_ALIAS
+storeFile=../keystore/power-stack-release.jks

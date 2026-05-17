@@ -18,7 +18,14 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   String _searchQuery = "";
 
   static const List<String> muscleGroups = [
-    'Pecho', 'Espalda', 'Piernas', 'Hombros', 'Brazos', 'Core', 'Cardio', 'Full Body'
+    'Pecho',
+    'Espalda',
+    'Piernas',
+    'Hombros',
+    'Brazos',
+    'Core',
+    'Cardio',
+    'Full Body',
   ];
 
   @override
@@ -51,7 +58,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.alert),
               onPressed: _confirmDelete,
-            )
+            ),
         ],
       ),
       body: Padding(
@@ -69,12 +76,15 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('EJERCICIOS', style: TextStyle(fontWeight: FontWeight.bold)),
+                const Text(
+                  'EJERCICIOS',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
                 TextButton.icon(
                   onPressed: () => _showAddExerciseBottomSheet(context),
                   icon: const Icon(Icons.add),
                   label: const Text('Añadir'),
-                )
+                ),
               ],
             ),
             Expanded(
@@ -83,9 +93,16 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.fitness_center, size: 48, color: Colors.grey.withValues(alpha: 0.3)),
+                          Icon(
+                            Icons.fitness_center,
+                            size: 48,
+                            color: Colors.grey.withValues(alpha: 0.3),
+                          ),
                           const SizedBox(height: 16),
-                          const Text('Aún no has añadido ejercicios', style: TextStyle(color: Colors.grey)),
+                          const Text(
+                            'Aún no has añadido ejercicios',
+                            style: TextStyle(color: Colors.grey),
+                          ),
                         ],
                       ),
                     )
@@ -96,18 +113,34 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                         return Card(
                           child: ListTile(
                             onTap: () => _showEditListExerciseDialog(index),
-                            title: Text(ex['name'] ?? 'S/N', style: const TextStyle(fontWeight: FontWeight.bold)),
-                            subtitle: Text('${ex['sets']} series x ${ex['reps']} reps'),
+                            title: Text(
+                              ex['name'] ?? 'S/N',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                            subtitle: Text(
+                              '${ex['sets']} series x ${ex['reps']} reps',
+                            ),
                             trailing: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 IconButton(
-                                  icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
-                                  onPressed: () => _showEditListExerciseDialog(index),
+                                  icon: const Icon(
+                                    Icons.edit_outlined,
+                                    color: AppColors.primary,
+                                  ),
+                                  onPressed: () =>
+                                      _showEditListExerciseDialog(index),
                                 ),
                                 IconButton(
-                                  icon: const Icon(Icons.delete_outline, color: AppColors.alert),
-                                  onPressed: () => setState(() => _selectedExercises.removeAt(index)),
+                                  icon: const Icon(
+                                    Icons.delete_outline,
+                                    color: AppColors.alert,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _selectedExercises.removeAt(index),
+                                  ),
                                 ),
                               ],
                             ),
@@ -119,8 +152,12 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             const SizedBox(height: 16),
             ElevatedButton(
               onPressed: _saveRoutine,
-              style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 55)),
-              child: Text(widget.routine == null ? 'GUARDAR RUTINA' : 'ACTUALIZAR RUTINA'),
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(double.infinity, 55),
+              ),
+              child: Text(
+                widget.routine == null ? 'GUARDAR RUTINA' : 'ACTUALIZAR RUTINA',
+              ),
             ),
           ],
         ),
@@ -140,23 +177,36 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            TextField(controller: setsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Series')),
+            TextField(
+              controller: setsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Series'),
+            ),
             const SizedBox(height: 16),
-            TextField(controller: repsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Repeticiones')),
+            TextField(
+              controller: repsController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(labelText: 'Repeticiones'),
+            ),
           ],
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR'),
+          ),
           ElevatedButton(
             onPressed: () {
               setState(() {
-                _selectedExercises[index]['sets'] = int.tryParse(setsController.text) ?? ex['sets'];
-                _selectedExercises[index]['reps'] = int.tryParse(repsController.text) ?? ex['reps'];
+                _selectedExercises[index]['sets'] =
+                    int.tryParse(setsController.text) ?? ex['sets'];
+                _selectedExercises[index]['reps'] =
+                    int.tryParse(repsController.text) ?? ex['reps'];
               });
               Navigator.pop(context);
             },
             child: const Text('ACTUALIZAR'),
-          )
+          ),
         ],
       ),
     );
@@ -177,7 +227,11 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           return Consumer<WorkoutController>(
             builder: (context, workout, child) {
               final exercises = List.from(workout.availableExercises);
-              exercises.sort((a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo((b['name'] ?? '').toString().toLowerCase()));
+              exercises.sort(
+                (a, b) => (a['name'] ?? '').toString().toLowerCase().compareTo(
+                  (b['name'] ?? '').toString().toLowerCase(),
+                ),
+              );
 
               final filteredExercises = exercises.where((e) {
                 final name = e['name']?.toString().toLowerCase() ?? "";
@@ -191,38 +245,65 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
                 ),
                 padding: EdgeInsets.only(
-                  left: 24, right: 24, top: 12, bottom: MediaQuery.of(context).viewInsets.bottom + 24
+                  left: 24,
+                  right: 24,
+                  top: 12,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Center(
-                      child: Container(width: 40, height: 4, decoration: BoxDecoration(color: Colors.black12, borderRadius: BorderRadius.circular(2)))),
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.black12,
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 24),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text('AÑADIR EJERCICIO', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+                        const Text(
+                          'AÑADIR EJERCICIO',
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                         if (workout.isLoadingExercises)
-                          const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2)),
+                          const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
                       ],
                     ),
                     const SizedBox(height: 16),
                     TextField(
-                      onChanged: (val) => setSheetState(() => _searchQuery = val),
+                      onChanged: (val) =>
+                          setSheetState(() => _searchQuery = val),
                       decoration: InputDecoration(
                         prefixIcon: const Icon(Icons.search),
                         hintText: 'Buscar ejercicio...',
-                        suffixIcon: _searchQuery.isNotEmpty 
-                          ? IconButton(icon: const Icon(Icons.clear), onPressed: () => setSheetState(() => _searchQuery = "")) 
-                          : null,
+                        suffixIcon: _searchQuery.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear),
+                                onPressed: () =>
+                                    setSheetState(() => _searchQuery = ""),
+                              )
+                            : null,
                       ),
                     ),
                     const SizedBox(height: 12),
                     TextButton.icon(
-                      onPressed: () => _showCreateExerciseDialog(context, workout, (newEx) {
-                        setSheetState(() => selectedEx = newEx);
-                      }),
+                      onPressed: () =>
+                          _showCreateExerciseDialog(context, workout, (newEx) {
+                            setSheetState(() => selectedEx = newEx);
+                          }),
                       icon: const Icon(Icons.add),
                       label: const Text('¿NO ESTÁ EN LA LISTA? CRÉALO AQUÍ'),
                     ),
@@ -231,56 +312,103 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                       child: workout.isLoadingExercises
                           ? const Center(child: CircularProgressIndicator())
                           : (workout.availableExercises.isEmpty)
-                              ? Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
+                          ? Center(
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Text('No hay ejercicios disponibles'),
+                                  const SizedBox(height: 16),
+                                  ElevatedButton(
+                                    onPressed: () => workout.loadExercises(),
+                                    child: const Text('CARGAR EJERCICIOS'),
+                                  ),
+                                ],
+                              ),
+                            )
+                          : (filteredExercises.isEmpty)
+                          ? const Center(
+                              child: Text('No hay resultados para tu búsqueda'),
+                            )
+                          : ListView.builder(
+                              itemCount: filteredExercises.length,
+                              itemBuilder: (context, index) {
+                                final ex = filteredExercises[index];
+                                final isSelected =
+                                    selectedEx?['id'] == ex['id'];
+                                return ListTile(
+                                  title: Text(
+                                    ex['name'] ?? 'S/N',
+                                    style: TextStyle(
+                                      fontWeight: isSelected
+                                          ? FontWeight.bold
+                                          : FontWeight.normal,
+                                      color: isSelected
+                                          ? AppColors.primary
+                                          : Colors.black87,
+                                    ),
+                                  ),
+                                  subtitle: Text(
+                                    ex['muscle_group'] ?? 'General',
+                                  ),
+                                  trailing: Row(
+                                    mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      const Text('No hay ejercicios disponibles'),
-                                      const SizedBox(height: 16),
-                                      ElevatedButton(onPressed: () => workout.loadExercises(), child: const Text('CARGAR EJERCICIOS'))
+                                      IconButton(
+                                        icon: const Icon(
+                                          Icons.edit_note,
+                                          size: 20,
+                                          color: Colors.grey,
+                                        ),
+                                        onPressed: () => _showCreateExerciseDialog(
+                                          context,
+                                          workout,
+                                          (updatedEx) {
+                                            // Si el ejercicio editado era el seleccionado, actualizamos la seleccion
+                                            if (isSelected) {
+                                              setSheetState(
+                                                () => selectedEx = updatedEx,
+                                              );
+                                            }
+                                          },
+                                          existingEx: ex,
+                                        ),
+                                      ),
+                                      if (isSelected)
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: AppColors.primary,
+                                        ),
                                     ],
                                   ),
-                                )
-                              : (filteredExercises.isEmpty)
-                                  ? const Center(child: Text('No hay resultados para tu búsqueda'))
-                                  : ListView.builder(
-                                      itemCount: filteredExercises.length,
-                                      itemBuilder: (context, index) {
-                                        final ex = filteredExercises[index];
-                                        final isSelected = selectedEx?['id'] == ex['id'];
-                                        return ListTile(
-                                          title: Text(ex['name'] ?? 'S/N', 
-                                            style: TextStyle(
-                                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                              color: isSelected ? AppColors.primary : Colors.black87
-                                            )
-                                          ),
-                                          subtitle: Text(ex['muscle_group'] ?? 'General'),
-                                          trailing: Row(
-                                            mainAxisSize: MainAxisSize.min,
-                                            children: [
-                                              IconButton(
-                                                icon: const Icon(Icons.edit_note, size: 20, color: Colors.grey),
-                                                onPressed: () => _showCreateExerciseDialog(context, workout, (updatedEx) {
-                                                  // Si el ejercicio editado era el seleccionado, actualizamos la seleccion
-                                                  if (isSelected) setSheetState(() => selectedEx = updatedEx);
-                                                }, existingEx: ex),
-                                              ),
-                                              if (isSelected) const Icon(Icons.check_circle, color: AppColors.primary)
-                                            ],
-                                          ),
-                                          onTap: () => setSheetState(() => selectedEx = ex),
-                                        );
-                                      },
-                                    ),
+                                  onTap: () =>
+                                      setSheetState(() => selectedEx = ex),
+                                );
+                              },
+                            ),
                     ),
                     const Divider(),
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Expanded(child: TextField(controller: setsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Series'))),
+                        Expanded(
+                          child: TextField(
+                            controller: setsController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Series',
+                            ),
+                          ),
+                        ),
                         const SizedBox(width: 16),
-                        Expanded(child: TextField(controller: repsController, keyboardType: TextInputType.number, decoration: const InputDecoration(labelText: 'Repeticiones'))),
+                        Expanded(
+                          child: TextField(
+                            controller: repsController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Repeticiones',
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                     const SizedBox(height: 16),
@@ -299,7 +427,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                           Navigator.pop(context);
                         }
                       },
-                      style: ElevatedButton.styleFrom(minimumSize: const Size(double.infinity, 55)),
+                      style: ElevatedButton.styleFrom(
+                        minimumSize: const Size(double.infinity, 55),
+                      ),
                       child: const Text('AÑADIR A LA RUTINA'),
                     ),
                   ],
@@ -312,48 +442,77 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     );
   }
 
-  void _showCreateExerciseDialog(BuildContext context, WorkoutController workout, Function(dynamic) onSaved, {dynamic existingEx}) {
+  void _showCreateExerciseDialog(
+    BuildContext context,
+    WorkoutController workout,
+    Function(dynamic) onSaved, {
+    dynamic existingEx,
+  }) {
     final nameController = TextEditingController(text: existingEx?['name']);
-    String? selectedGroup = muscleGroups.contains(existingEx?['muscle_group']) ? existingEx['muscle_group'] : muscleGroups[0];
+    String? selectedGroup = muscleGroups.contains(existingEx?['muscle_group'])
+        ? existingEx['muscle_group']
+        : muscleGroups[0];
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(existingEx == null ? 'NUEVO EJERCICIO' : 'EDITAR CATÁLOGO'),
+          title: Text(
+            existingEx == null ? 'NUEVO EJERCICIO' : 'EDITAR CATÁLOGO',
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: nameController, decoration: const InputDecoration(labelText: 'Nombre del Ejercicio')),
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nombre del Ejercicio',
+                ),
+              ),
               const SizedBox(height: 16),
               DropdownButtonFormField<String>(
-                value: selectedGroup,
+                initialValue: selectedGroup,
                 decoration: const InputDecoration(labelText: 'Grupo Muscular'),
-                items: muscleGroups.map((g) => DropdownMenuItem(value: g, child: Text(g))).toList(),
+                items: muscleGroups
+                    .map((g) => DropdownMenuItem(value: g, child: Text(g)))
+                    .toList(),
                 onChanged: (val) => setDialogState(() => selectedGroup = val),
               ),
             ],
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('CANCELAR'),
+            ),
             ElevatedButton(
               onPressed: () async {
                 if (nameController.text.isNotEmpty) {
                   dynamic res;
                   if (existingEx == null) {
-                    res = await workout.createExercise(nameController.text, selectedGroup ?? 'General');
+                    res = await workout.createExercise(
+                      nameController.text,
+                      selectedGroup ?? 'General',
+                    );
                   } else {
-                    res = await workout.updateExercise(existingEx['id'], nameController.text, selectedGroup ?? 'General');
+                    res = await workout.updateExercise(
+                      existingEx['id'],
+                      nameController.text,
+                      selectedGroup ?? 'General',
+                    );
                   }
-                  
+
                   if (res != null) {
                     onSaved(res);
                   }
-                  if (mounted) Navigator.pop(context);
+                  if (!context.mounted) return;
+                  Navigator.pop(context);
                 }
               },
-              child: Text(existingEx == null ? 'CREAR Y SELECCIONAR' : 'ACTUALIZAR'),
-            )
+              child: Text(
+                existingEx == null ? 'CREAR Y SELECCIONAR' : 'ACTUALIZAR',
+              ),
+            ),
           ],
         ),
       ),
@@ -367,18 +526,25 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         title: const Text('¿Eliminar Rutina?'),
         content: const Text('Esta acción no se puede deshacer.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('CANCELAR')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('CANCELAR'),
+          ),
           ElevatedButton(
             onPressed: () async {
-              await context.read<WorkoutController>().deleteRoutine(widget.routine['id']);
-              if (mounted) {
-                Navigator.pop(context);
-                Navigator.pop(context);
-              }
+              await context.read<WorkoutController>().deleteRoutine(
+                widget.routine['id'],
+              );
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              Navigator.pop(context);
             },
             style: ElevatedButton.styleFrom(backgroundColor: AppColors.alert),
-            child: const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
-          )
+            child: const Text(
+              'ELIMINAR',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
         ],
       ),
     );
@@ -386,20 +552,35 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
 
   void _saveRoutine() async {
     if (_nameController.text.isEmpty || _selectedExercises.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Rellena todos los campos')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Rellena todos los campos')));
       return;
     }
 
     bool success;
     if (widget.routine == null) {
-      success = await context.read<WorkoutController>().createRoutine(_nameController.text, _selectedExercises);
+      success = await context.read<WorkoutController>().createRoutine(
+        _nameController.text,
+        _selectedExercises,
+      );
     } else {
-      success = await context.read<WorkoutController>().updateRoutine(widget.routine['id'], _nameController.text, _selectedExercises);
+      success = await context.read<WorkoutController>().updateRoutine(
+        widget.routine['id'],
+        _nameController.text,
+        _selectedExercises,
+      );
     }
 
     if (success && mounted) {
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(widget.routine == null ? 'Rutina creada' : 'Rutina actualizada')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            widget.routine == null ? 'Rutina creada' : 'Rutina actualizada',
+          ),
+        ),
+      );
     }
   }
 }
