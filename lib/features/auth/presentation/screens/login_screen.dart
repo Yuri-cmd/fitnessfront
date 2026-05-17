@@ -5,6 +5,7 @@ import '../../../../core/widgets/neon_button.dart';
 import '../controllers/auth_controller.dart';
 import 'privacy_screen.dart';
 import 'register_screen.dart';
+import 'support_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -316,22 +317,44 @@ class _LoginScreenState extends State<LoginScreen>
                                 ),
                               ),
                               const SizedBox(height: 20),
-                              Center(
-                                child: TextButton(
-                                  onPressed: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const PrivacyScreen(),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  TextButton(
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const PrivacyScreen(),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Privacidad',
+                                      style: TextStyle(
+                                        color: AppColors.textBody,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
-                                  child: const Text(
-                                    'Política de Privacidad',
-                                    style: TextStyle(
-                                      color: AppColors.textBody,
-                                      fontSize: 12,
+                                  Text('·',
+                                      style: TextStyle(
+                                          color: AppColors.textBody
+                                              .withValues(alpha: 0.4))),
+                                  TextButton(
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => const SupportScreen(),
+                                      ),
+                                    ),
+                                    child: const Text(
+                                      'Soporte',
+                                      style: TextStyle(
+                                        color: AppColors.textBody,
+                                        fontSize: 12,
+                                      ),
                                     ),
                                   ),
-                                ),
+                                ],
                               ),
                               const SizedBox(height: 16),
                             ],
