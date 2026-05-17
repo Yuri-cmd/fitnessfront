@@ -21,6 +21,32 @@ class AuthController with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> register(String name, String email, String password) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _authService.register({
+        'name': name,
+        'email': email,
+        'password': password,
+      });
+      if (response.statusCode == 201) {
+        _token = response.data['token'];
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString(AppConstants.authTokenKey, _token!);
+        _isAuthenticated = true;
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   Future<bool> login(String email, String password) async {
     _isLoading = true;
     notifyListeners();

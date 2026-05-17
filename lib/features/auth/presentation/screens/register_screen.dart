@@ -1,0 +1,279 @@
+import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import '../../../../core/theme/app_colors.dart';
+import '../../../../core/widgets/neon_button.dart';
+import '../controllers/auth_controller.dart';
+
+class RegisterScreen extends StatefulWidget {
+  const RegisterScreen({super.key});
+
+  @override
+  State<RegisterScreen> createState() => _RegisterScreenState();
+}
+
+class _RegisterScreenState extends State<RegisterScreen> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmController = TextEditingController();
+  bool _obscurePassword = true;
+  bool _obscureConfirm = true;
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _passwordController.dispose();
+    _confirmController.dispose();
+    super.dispose();
+  }
+
+  void _register() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+    final confirm = _confirmController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      _showError('Completa todos los campos.');
+      return;
+    }
+    if (password.length < 8) {
+      _showError('La contraseña debe tener al menos 8 caracteres.');
+      return;
+    }
+    if (password != confirm) {
+      _showError('Las contraseñas no coinciden.');
+      return;
+    }
+
+    final success = await context.read<AuthController>().register(name, email, password);
+    if (!success && mounted) {
+      _showError('No se pudo crear la cuenta. El correo puede ya estar registrado.');
+    }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(msg),
+        backgroundColor: AppColors.error.withValues(alpha: 0.9),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isLoading = context.watch<AuthController>().isLoading;
+
+    return GestureDetector(
+      onTap: () => FocusScope.of(context).unfocus(),
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: AppColors.textTitle),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: const Text(
+            'CREAR CUENTA',
+            style: TextStyle(
+              fontSize: 15,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+              color: AppColors.textTitle,
+            ),
+          ),
+        ),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              const SizedBox(height: 12),
+              // Ícono
+              Center(
+                child: Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    border: Border.all(
+                      color: AppColors.primary.withValues(alpha: 0.28),
+                      width: 1.5,
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.18),
+                        blurRadius: 24,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: const Icon(
+                    Icons.person_add_rounded,
+                    size: 34,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 28),
+              _label('NOMBRE COMPLETO'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _nameController,
+                textCapitalization: TextCapitalization.words,
+                textInputAction: TextInputAction.next,
+                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
+                decoration: _inputDeco(
+                  hint: 'Tu nombre',
+                  icon: Icons.badge_outlined,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _label('CORREO ELECTRÓNICO'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _emailController,
+                keyboardType: TextInputType.emailAddress,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.email],
+                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
+                decoration: _inputDeco(
+                  hint: 'ejemplo@correo.com',
+                  icon: Icons.alternate_email_rounded,
+                ),
+              ),
+              const SizedBox(height: 20),
+              _label('CONTRASEÑA'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _passwordController,
+                obscureText: _obscurePassword,
+                textInputAction: TextInputAction.next,
+                autofillHints: const [AutofillHints.newPassword],
+                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
+                decoration: _inputDeco(
+                  hint: 'Mínimo 8 caracteres',
+                  icon: Icons.lock_outline_rounded,
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscurePassword
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 20,
+                      color: AppColors.textBody,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscurePassword = !_obscurePassword),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _label('CONFIRMAR CONTRASEÑA'),
+              const SizedBox(height: 8),
+              TextField(
+                controller: _confirmController,
+                obscureText: _obscureConfirm,
+                textInputAction: TextInputAction.done,
+                autofillHints: const [AutofillHints.newPassword],
+                onSubmitted: (_) => _register(),
+                style: const TextStyle(color: AppColors.textTitle, fontSize: 15),
+                decoration: _inputDeco(
+                  hint: '••••••••',
+                  icon: Icons.lock_outline_rounded,
+                  suffix: IconButton(
+                    icon: Icon(
+                      _obscureConfirm
+                          ? Icons.visibility_outlined
+                          : Icons.visibility_off_outlined,
+                      size: 20,
+                      color: AppColors.textBody,
+                    ),
+                    onPressed: () =>
+                        setState(() => _obscureConfirm = !_obscureConfirm),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 36),
+              NeonButton(
+                label: 'REGISTRARME',
+                onTap: _register,
+                isLoading: isLoading,
+                colors: const [AppColors.primary, Color(0xFF8BB52E)],
+              ),
+              const SizedBox(height: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Text(
+                    '¿Ya tienes cuenta? ',
+                    style: TextStyle(color: AppColors.textBody, fontSize: 13),
+                  ),
+                  GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: const Text(
+                      'Inicia sesión',
+                      style: TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _label(String text) => Padding(
+        padding: const EdgeInsets.only(left: 2),
+        child: Text(
+          text,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: AppColors.textBody,
+            letterSpacing: 1.5,
+          ),
+        ),
+      );
+
+  InputDecoration _inputDeco({
+    required String hint,
+    required IconData icon,
+    Widget? suffix,
+  }) =>
+      InputDecoration(
+        hintText: hint,
+        hintStyle: TextStyle(color: AppColors.textBody.withValues(alpha: 0.5)),
+        prefixIcon: Icon(icon, size: 20, color: AppColors.textBody),
+        suffixIcon: suffix,
+        filled: true,
+        fillColor: const Color(0xFFEEEEEE),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+      );
+}

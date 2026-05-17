@@ -4,6 +4,7 @@ import '../../../../core/theme/app_colors.dart';
 import '../../../../core/widgets/neon_button.dart';
 import '../controllers/auth_controller.dart';
 import 'privacy_screen.dart';
+import 'register_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -287,7 +288,12 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 16),
                               OutlinedButton(
-                                onPressed: () {},
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const RegisterScreen(),
+                                  ),
+                                ),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(
                                     color: AppColors.primary,
