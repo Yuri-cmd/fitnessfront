@@ -297,6 +297,38 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   // ─── Sección de Logros ────────────────────────────────────────────────────
 
+  String _resolveIcon(String? raw) {
+    if (raw == null || raw.isEmpty) return '🏆';
+    // Si ya es un emoji (no empieza con "fa-"), lo usamos directo
+    if (!raw.startsWith('fa-')) return raw;
+    const map = {
+      'fa-trophy': '🏆',
+      'fa-medal': '🥇',
+      'fa-star': '⭐',
+      'fa-fire': '🔥',
+      'fa-bolt': '⚡',
+      'fa-dumbbell': '🏋️',
+      'fa-heart': '❤️',
+      'fa-crown': '👑',
+      'fa-check': '✅',
+      'fa-flag': '🚩',
+      'fa-running': '🏃',
+      'fa-bicycle': '🚴',
+      'fa-swimmer': '🏊',
+      'fa-walking': '🚶',
+      'fa-weight': '⚖️',
+      'fa-apple-alt': '🍎',
+      'fa-bed': '🛏️',
+      'fa-brain': '🧠',
+      'fa-chart-line': '📈',
+      'fa-calendar-check': '📅',
+    };
+    for (final entry in map.entries) {
+      if (raw.contains(entry.key)) return entry.value;
+    }
+    return '🏆';
+  }
+
   Widget _buildAchievementsSection(List<dynamic> achievements) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -332,8 +364,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        ach['icon'] ?? '🏆',
+                        _resolveIcon(ach['icon']?.toString()),
                         style: const TextStyle(fontSize: 24),
+                        maxLines: 1,
+                        overflow: TextOverflow.clip,
                       ),
                       const SizedBox(height: 2),
                       Text(
