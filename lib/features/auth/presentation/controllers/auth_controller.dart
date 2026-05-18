@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../../../core/constants/app_constants.dart';
 import '../../data/services/auth_service.dart';
@@ -59,6 +60,7 @@ class AuthController with ChangeNotifier {
         _isAuthenticated = true;
         _isLoading = false;
         notifyListeners();
+        _registerFcmToken();
         return true;
       }
     } catch (e) {
@@ -70,10 +72,35 @@ class AuthController with ChangeNotifier {
   }
 
   Future<void> logout() async {
+    await _unregisterFcmToken();
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.authTokenKey);
     _isAuthenticated = false;
     _token = null;
     notifyListeners();
+  }
+
+  Future<void> _registerFcmToken() async {
+    try {
+      final settings = await FirebaseMessaging.instance.requestPermission();
+      if (settings.authorizationStatus != AuthorizationStatus.authorized) return;
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) await _authService.saveFcmToken(token);
+      FirebaseMessaging.instance.onTokenRefresh.listen(
+        (t) => _authService.saveFcmToken(t),
+      );
+    } catch (e) {
+      debugPrint('FCM register error: $e');
+    }
+  }
+
+  Future<void> _unregisterFcmToken() async {
+    try {
+      final token = await FirebaseMessaging.instance.getToken();
+      if (token != null) await _authService.removeFcmToken(token);
+      await FirebaseMessaging.instance.deleteToken();
+    } catch (e) {
+      debugPrint('FCM unregister error: $e');
+    }
   }
 }
