@@ -60,9 +60,37 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: const Icon(Icons.person_outline, color: AppColors.primary),
             onPressed: () => _showUpdateProfileDialog(context, fitness),
           ),
-          IconButton(
-            icon: const Icon(Icons.logout, color: AppColors.primary),
-            onPressed: () => context.read<AuthController>().logout(),
+          PopupMenuButton<String>(
+            icon: const Icon(Icons.more_vert, color: AppColors.primary),
+            onSelected: (value) {
+              if (value == 'logout') {
+                context.read<AuthController>().logout();
+              } else if (value == 'delete') {
+                _showDeleteAccountDialog(context);
+              }
+            },
+            itemBuilder: (_) => [
+              const PopupMenuItem(
+                value: 'logout',
+                child: Row(
+                  children: [
+                    Icon(Icons.logout, size: 18),
+                    SizedBox(width: 10),
+                    Text('Cerrar sesión'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem(
+                value: 'delete',
+                child: Row(
+                  children: [
+                    Icon(Icons.delete_forever, size: 18, color: Colors.red),
+                    SizedBox(width: 10),
+                    Text('Eliminar cuenta', style: TextStyle(color: Colors.red)),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -478,6 +506,35 @@ class _DashboardScreenState extends State<DashboardScreen> {
           size: 20,
         ),
       ],
+    );
+  }
+
+  // ─── Diálogo Eliminar Cuenta ─────────────────────────────────────────────
+
+  void _showDeleteAccountDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar cuenta'),
+        content: const Text(
+          '¿Estás seguro? Esta acción es irreversible. '
+          'Se eliminarán todos tus datos permanentemente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('CANCELAR'),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () async {
+              Navigator.pop(ctx);
+              await context.read<AuthController>().deleteAccount();
+            },
+            child: const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
     );
   }
 

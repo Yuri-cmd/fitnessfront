@@ -24,4 +24,8 @@ class AuthService {
   Future<Response> updateProfile(Map<String, dynamic> data) async {
     return await _dio.post('/profile', data: data);
   }
+
+  Future<Response> deleteAccount() async {
+    return await _dio.delete('/account');
+  }
 }

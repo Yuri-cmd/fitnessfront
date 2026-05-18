@@ -76,4 +76,24 @@ class AuthController with ChangeNotifier {
     _token = null;
     notifyListeners();
   }
+
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      await _authService.deleteAccount();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(AppConstants.authTokenKey);
+      _isAuthenticated = false;
+      _token = null;
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
 }
