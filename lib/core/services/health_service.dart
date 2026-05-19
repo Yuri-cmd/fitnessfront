@@ -8,26 +8,30 @@ class HealthService {
 
   final Health _health = Health();
 
-  static const _readTypes = [
+  static const _allTypes = [
     HealthDataType.WEIGHT,
     HealthDataType.HEIGHT,
     HealthDataType.STEPS,
     HealthDataType.ACTIVE_ENERGY_BURNED,
     HealthDataType.HEART_RATE,
+    HealthDataType.WORKOUT,
   ];
 
-  static const _writeTypes = [
-    HealthDataType.WEIGHT,
-    HealthDataType.WORKOUT,
+  static const _permissions = [
+    HealthDataAccess.READ_WRITE, // WEIGHT
+    HealthDataAccess.READ,       // HEIGHT
+    HealthDataAccess.READ,       // STEPS
+    HealthDataAccess.READ,       // ACTIVE_ENERGY_BURNED
+    HealthDataAccess.READ,       // HEART_RATE
+    HealthDataAccess.READ_WRITE, // WORKOUT
   ];
 
   Future<bool> requestPermissions() async {
     try {
       await _health.configure();
       final granted = await _health.requestAuthorization(
-        _readTypes,
-        permissions: List.filled(_readTypes.length, HealthDataAccess.READ)
-          ..addAll(List.filled(_writeTypes.length, HealthDataAccess.READ_WRITE)),
+        _allTypes,
+        permissions: _permissions,
       );
       return granted;
     } catch (e) {
