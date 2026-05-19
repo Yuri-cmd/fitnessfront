@@ -47,10 +47,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final success =
-        await context.read<AuthController>().register(name, email, password);
-    if (!success && mounted) {
-      _showError('No se pudo crear la cuenta. El correo puede ya estar registrado.');
+    final ctrl = context.read<AuthController>();
+    final success = await ctrl.register(name, email, password);
+    if (success && mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+    } else if (!success && mounted) {
+      _showError(ctrl.registerError ?? 'No se pudo crear la cuenta.');
     }
   }
 

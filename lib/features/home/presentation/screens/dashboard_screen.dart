@@ -150,11 +150,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _buildHeader() {
+    final name = context.read<AuthController>().userName.toUpperCase();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'HOLA, ATLETA',
+          'HOLA, $name',
           style: TextStyle(
             fontSize: 14,
             color: AppColors.primary.withValues(alpha: 0.7),
