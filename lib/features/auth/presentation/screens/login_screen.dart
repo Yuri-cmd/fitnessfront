@@ -20,6 +20,7 @@ class _LoginScreenState extends State<LoginScreen>
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
+  bool _didTriggerBiometric = false;
 
   late final AnimationController _animController;
   late final Animation<double> _fadeHero;
@@ -62,6 +63,7 @@ class _LoginScreenState extends State<LoginScreen>
     _animController.forward();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) VersionService.checkAndPrompt(context);
+      _tryAutoLaunchBiometric();
     });
   }
 
@@ -73,11 +75,36 @@ class _LoginScreenState extends State<LoginScreen>
     super.dispose();
   }
 
+  void _tryAutoLaunchBiometric() {
+    if (_didTriggerBiometric) return;
+    final auth = context.read<AuthController>();
+    if (auth.isBiometricEnabled && auth.isBiometricAvailable) {
+      _didTriggerBiometric = true;
+      _loginWithBiometrics();
+    }
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    final success = await context.read<AuthController>().loginWithBiometrics();
+    if (!success && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('No se pudo verificar la identidad. Ingresa con tu contraseña.'),
+          backgroundColor: AppColors.error.withValues(alpha: 0.9),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          margin: const EdgeInsets.all(16),
+        ),
+      );
+    }
+  }
+
   void _login() async {
-    final success = await context.read<AuthController>().login(
-          _emailController.text,
-          _passwordController.text,
-        );
+    final auth = context.read<AuthController>();
+    final success = await auth.login(
+      _emailController.text,
+      _passwordController.text,
+    );
     if (!success && mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -88,12 +115,44 @@ class _LoginScreenState extends State<LoginScreen>
           margin: const EdgeInsets.all(16),
         ),
       );
+      return;
     }
+    if (success && mounted && auth.isBiometricAvailable && !auth.isBiometricEnabled) {
+      _offerEnableBiometric();
+    }
+  }
+
+  void _offerEnableBiometric() {
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Activar acceso biométrico'),
+        content: const Text(
+          '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ahora no'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              context.read<AuthController>().setBiometricEnabled(true);
+            },
+            child: Text('Activar', style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthController>().isLoading;
+    final auth = context.watch<AuthController>();
+    final isLoading = auth.isLoading;
+    final showBiometric = auth.isBiometricAvailable && auth.isBiometricEnabled;
     final size = MediaQuery.sizeOf(context);
     final padding = MediaQuery.paddingOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -250,6 +309,29 @@ class _LoginScreenState extends State<LoginScreen>
                                   Color(0xFF8BB52E),
                                 ],
                               ),
+                              if (showBiometric) ...[
+                                const SizedBox(height: 16),
+                                OutlinedButton.icon(
+                                  onPressed: isLoading ? null : _loginWithBiometrics,
+                                  icon: const Icon(Icons.fingerprint_rounded, size: 22),
+                                  label: const Text(
+                                    'INGRESAR CON BIOMÉTRICO',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.0,
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: AppColors.primary,
+                                    side: const BorderSide(color: AppColors.primary, width: 1.5),
+                                    minimumSize: const Size(double.infinity, 55),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                  ),
+                                ),
+                              ],
                               const SizedBox(height: 28),
                               Row(
                                 children: [

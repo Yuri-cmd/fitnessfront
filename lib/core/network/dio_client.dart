@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../constants/app_constants.dart';
+import '../services/auth_events.dart';
 
 class DioClient {
   late final Dio dio;
@@ -28,6 +29,9 @@ class DioClient {
       },
       onError: (e, handler) {
         debugPrint('HTTP ${e.response?.statusCode} → ${e.requestOptions.method} ${e.requestOptions.path}');
+        if (e.response?.statusCode == 401) {
+          AuthEvents.notifyUnauthorized();
+        }
         return handler.next(e);
       },
     ));

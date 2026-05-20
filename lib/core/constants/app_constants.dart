@@ -3,4 +3,5 @@ class AppConstants {
   static const String supportUrl = 'https://magusemail.com/fitnessback/public/support';
   static const String authTokenKey = 'auth_token';
   static const String userNameKey = 'user_name';
+  static const String biometricEnabledKey = 'biometric_enabled';
 }
