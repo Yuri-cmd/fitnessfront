@@ -11,7 +11,7 @@ import 'features/stats/bindings/stats_binding.dart';
 import 'core/theme/app_theme.dart';
 import 'features/auth/presentation/controllers/auth_controller.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
-import 'features/home/presentation/screens/dashboard_screen.dart';
+import 'features/home/presentation/screens/main_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 @pragma('vm:entry-point')
@@ -23,6 +23,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+
+  // iOS: mostrar notificaciones aunque la app esté en primer plano
+  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
+    alert: true,
+    badge: true,
+    sound: true,
+  );
+
   await initializeDateFormatting('es_ES', null);
 
   final themeController = ThemeController();
@@ -56,8 +64,13 @@ class FitTrackerApp extends StatelessWidget {
       themeMode: themeMode,
       home: Consumer<AuthController>(
         builder: (context, auth, _) {
+          if (!auth.isInitialized) {
+            return const Scaffold(
+              body: Center(child: CircularProgressIndicator()),
+            );
+          }
           return auth.isAuthenticated
-              ? const DashboardScreen()
+              ? const MainScreen()
               : const LoginScreen();
         },
       ),

@@ -6,20 +6,26 @@ class WaterController with ChangeNotifier {
 
   WaterController(this._waterService);
 
-  int _todayMl = 0;
+  int _glasses = 0;
+  int _goalGlasses = 8;
   bool _isLoading = false;
 
-  int get todayMl => _todayMl;
+  int get glasses => _glasses;
+  int get goalGlasses => _goalGlasses;
   bool get isLoading => _isLoading;
-  double get progress => (_todayMl / 2000).clamp(0.0, 1.0);
-  String get statusText =>
-      _todayMl >= 2000 ? '¡Meta alcanzada!' : '${2000 - _todayMl} ml restantes';
+  bool get goalReached => _glasses >= _goalGlasses;
+  double get progress => (_glasses / _goalGlasses).clamp(0.0, 1.0);
+  String get statusText => goalReached
+      ? '¡Meta alcanzada! 🎉'
+      : '${_goalGlasses - _glasses} vasos más para tu meta';
 
   Future<void> loadTodayWater() async {
     try {
       final response = await _waterService.getTodayWater();
       if (response.statusCode == 200) {
-        _todayMl = (response.data['total_ml'] as num).toInt();
+        final data = response.data as Map<String, dynamic>;
+        _glasses = (data['glasses'] as num).toInt();
+        _goalGlasses = (data['goal_glasses'] as num).toInt();
         notifyListeners();
       }
     } catch (e) {
@@ -27,17 +33,36 @@ class WaterController with ChangeNotifier {
     }
   }
 
-  Future<void> logWater(int amountMl) async {
+  Future<void> addGlass() async {
     _isLoading = true;
     notifyListeners();
     try {
-      final response = await _waterService.logWater(amountMl);
+      final response = await _waterService.logGlasses(1);
       if (response.statusCode == 201) {
-        _todayMl += amountMl;
-        notifyListeners();
+        final data = response.data as Map<String, dynamic>;
+        _glasses = (data['glasses'] as num).toInt();
+        _goalGlasses = (data['goal_glasses'] as num).toInt();
       }
     } catch (e) {
       debugPrint('Error logging water: $e');
+    }
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> removeGlass() async {
+    if (_glasses <= 0) return;
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final response = await _waterService.removeLastGlass();
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        _glasses = (data['glasses'] as num).toInt();
+        _goalGlasses = (data['goal_glasses'] as num).toInt();
+      }
+    } catch (e) {
+      debugPrint('Error removing water: $e');
     }
     _isLoading = false;
     notifyListeners();

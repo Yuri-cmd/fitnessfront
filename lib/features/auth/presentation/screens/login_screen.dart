@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   void _tryAutoLaunchBiometric() {
-    if (_didTriggerBiometric) return;
+    if (!mounted || _didTriggerBiometric) return;
     final auth = context.read<AuthController>();
     if (auth.isBiometricEnabled && auth.isBiometricAvailable) {
       _didTriggerBiometric = true;
@@ -115,37 +115,7 @@ class _LoginScreenState extends State<LoginScreen>
           margin: const EdgeInsets.all(16),
         ),
       );
-      return;
     }
-    if (success && mounted && auth.isBiometricAvailable && !auth.isBiometricEnabled) {
-      _offerEnableBiometric();
-    }
-  }
-
-  void _offerEnableBiometric() {
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Activar acceso biométrico'),
-        content: const Text(
-          '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Ahora no'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<AuthController>().setBiometricEnabled(true);
-            },
-            child: Text('Activar', style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
-      ),
-    );
   }
 
   @override

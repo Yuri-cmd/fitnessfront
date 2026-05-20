@@ -26,6 +26,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('MIS METAS')),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_goals',
         onPressed: _showAddGoalDialog,
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),

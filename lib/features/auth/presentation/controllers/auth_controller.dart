@@ -21,9 +21,12 @@ class AuthController with ChangeNotifier {
   bool _isBiometricAvailable = false;
 
   late final StreamSubscription<void> _unauthorizedSub;
+  bool _isInitialized = false;
+  bool get isInitialized => _isInitialized;
 
   AuthController(this._authService) {
     _unauthorizedSub = AuthEvents.onUnauthorized.listen((_) => _forceLogout());
+    checkAuth();
   }
 
   void _forceLogout() async {
@@ -53,9 +56,14 @@ class AuthController with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     _token = prefs.getString(AppConstants.authTokenKey);
     _userName = prefs.getString(AppConstants.userNameKey);
-    _isAuthenticated = _token != null;
     _isBiometricEnabled = prefs.getBool(AppConstants.biometricEnabledKey) ?? false;
     _isBiometricAvailable = await _biometricService.isAvailable();
+    // Si hay token Y biométrico activo → mostrar LoginScreen para que Face ID dispare
+    // Si hay token pero sin biométrico → entrar directamente
+    final hasBiometric = _isBiometricEnabled && _isBiometricAvailable;
+    _isAuthenticated = _token != null && !hasBiometric;
+    _isInitialized = true;
+    if (_token != null) debugPrint('🔑 AUTH TOKEN (stored): $_token');
     notifyListeners();
   }
 
@@ -128,6 +136,7 @@ class AuthController with ChangeNotifier {
       if (response.statusCode == 200) {
         _token = response.data['token'];
         _userName = response.data['name'];
+        debugPrint('🔑 AUTH TOKEN: $_token');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(AppConstants.authTokenKey, _token!);
         if (_userName != null) await prefs.setString(AppConstants.userNameKey, _userName!);
@@ -180,8 +189,10 @@ class AuthController with ChangeNotifier {
   Future<void> _registerFcmToken() async {
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
+      debugPrint('📲 FCM permission: ${settings.authorizationStatus}');
       if (settings.authorizationStatus != AuthorizationStatus.authorized) return;
       final token = await FirebaseMessaging.instance.getToken();
+      debugPrint('📱 FCM TOKEN: $token');
       if (token != null) await _authService.saveFcmToken(token);
       FirebaseMessaging.instance.onTokenRefresh.listen(
         (t) => _authService.saveFcmToken(t),

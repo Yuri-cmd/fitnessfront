@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:audioplayers/audioplayers.dart';
 import '../../../../core/theme/app_colors.dart';
 
 enum _Phase { ready, resting, finished }
@@ -13,14 +14,23 @@ class TrainingSessionScreen extends StatefulWidget {
   State<TrainingSessionScreen> createState() => _TrainingSessionScreenState();
 }
 
-class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
+class _TrainingSessionScreenState extends State<TrainingSessionScreen>
+    with WidgetsBindingObserver {
   // ── Timers ────────────────────────────────────────────────────────────────
-  int _elapsed = 0;
+  late DateTime _sessionStart;
   Timer? _timer;
 
-  int _restRemaining = 90;
+  DateTime? _restEndTime;
   int _restTime = 90;
   Timer? _restTimer;
+
+  final _player = AudioPlayer();
+
+  int get _elapsed => DateTime.now().difference(_sessionStart).inSeconds;
+  int get _restRemaining =>
+      _restEndTime == null
+          ? _restTime
+          : _restEndTime!.difference(DateTime.now()).inSeconds.clamp(0, 9999);
 
   // ── Estado ────────────────────────────────────────────────────────────────
   _Phase _phase = _Phase.ready;
@@ -39,9 +49,11 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
   void initState() {
     super.initState();
     _buildSets();
+    _sessionStart = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() => _elapsed++);
+      if (mounted) setState(() {});
     });
+    WidgetsBinding.instance.addObserver(this);
     _autoFillCurrentWeight();
   }
 
@@ -59,9 +71,29 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed && mounted) {
+      // Si el descanso ya terminó mientras estaba en background, saltar
+      if (_phase == _Phase.resting && _restRemaining <= 0) {
+        _skipRest();
+      } else {
+        setState(() {});
+      }
+    }
+  }
+
+  Future<void> _playRestDone() async {
+    try {
+      await _player.play(AssetSource('sounds/rest_done.wav'));
+    } catch (_) {}
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _timer?.cancel();
     _restTimer?.cancel();
+    _player.dispose();
     for (final row in _controllers) {
       for (final c in row) {
         c.dispose();
@@ -141,7 +173,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
     } else {
       setState(() {
         _phase = _Phase.resting;
-        _restRemaining = _restTime;
+        _restEndTime = DateTime.now().add(Duration(seconds: _restTime));
       });
       _startRestTimer();
     }
@@ -159,10 +191,12 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
     _restTimer?.cancel();
     _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
-      setState(() => _restRemaining--);
       if (_restRemaining <= 0) {
         _restTimer?.cancel();
+        _playRestDone();
         _skipRest();
+      } else {
+        setState(() {});
       }
     });
   }
@@ -176,8 +210,9 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen> {
 
   void _adjustRest(int delta) {
     setState(() {
-      _restRemaining = (_restRemaining + delta).clamp(5, 300);
+      final newRemaining = (_restRemaining + delta).clamp(5, 300);
       _restTime = (_restTime + delta).clamp(5, 300);
+      _restEndTime = DateTime.now().add(Duration(seconds: newRemaining));
     });
   }
 
