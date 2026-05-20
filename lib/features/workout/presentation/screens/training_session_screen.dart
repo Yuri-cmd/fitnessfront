@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../../core/services/live_activity_service.dart';
 
 enum _Phase { ready, resting, finished }
 
@@ -51,10 +52,42 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
     _buildSets();
     _sessionStart = DateTime.now();
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) setState(() {});
+      if (mounted) {
+        setState(() {});
+        _updateLiveActivity();
+      }
     });
     WidgetsBinding.instance.addObserver(this);
     _autoFillCurrentWeight();
+    _startLiveActivity();
+  }
+
+  void _startLiveActivity() {
+    if (_exercises.isEmpty) return;
+    final ex = _exercises[0];
+    final totalSets = (ex['pivot']['sets'] as num).toInt();
+    LiveActivityService.start(
+      routineName: widget.routine['name'] ?? '',
+      exerciseName: ex['name'] ?? '',
+      currentSet: 1,
+      totalSets: totalSets,
+      elapsedSeconds: 0,
+    );
+  }
+
+  void _updateLiveActivity({bool? isResting}) {
+    if (_exercises.isEmpty) return;
+    final ex = _currentEx;
+    final totalSets = (ex['pivot']['sets'] as num).toInt();
+    final resting = isResting ?? (_phase == _Phase.resting);
+    LiveActivityService.update(
+      isResting: resting,
+      restRemaining: resting ? _restRemaining : 0,
+      restTotal: resting ? _restTime : 0,
+      elapsedSeconds: _elapsed,
+      currentSet: _currentSetIdx + 1,
+      totalSets: totalSets,
+    );
   }
 
   void _buildSets() {
@@ -94,6 +127,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
     _timer?.cancel();
     _restTimer?.cancel();
     _player.dispose();
+    LiveActivityService.end();
     for (final row in _controllers) {
       for (final c in row) {
         c.dispose();
@@ -170,12 +204,14 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
 
     if (_isLastOfAll) {
       setState(() => _phase = _Phase.finished);
+      LiveActivityService.end();
     } else {
       setState(() {
         _phase = _Phase.resting;
         _restEndTime = DateTime.now().add(Duration(seconds: _restTime));
       });
       _startRestTimer();
+      _updateLiveActivity(isResting: true);
     }
   }
 
@@ -206,6 +242,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
     _restTimer = null;
     setState(() => _phase = _Phase.ready);
     _advanceSet();
+    _updateLiveActivity(isResting: false);
   }
 
   void _adjustRest(int delta) {

@@ -82,6 +82,8 @@
 	<key>NSHealthUpdateUsageDescription</key>
 	<string>Power Stack guarda tus entrenamientos y registros de peso en Apple Health.</string>
 
+	<key>NSSupportsLiveActivities</key>
+	<true/>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>itms-apps</string>
