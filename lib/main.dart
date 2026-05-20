@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/bindings/core_binding.dart';
 import 'core/theme/theme_controller.dart';
 import 'features/auth/bindings/auth_binding.dart';
@@ -12,8 +14,15 @@ import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/dashboard_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+@pragma('vm:entry-point')
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp();
+}
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
   await initializeDateFormatting('es_ES', null);
 
   final themeController = ThemeController();

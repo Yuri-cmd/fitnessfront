@@ -46,6 +46,7 @@
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
 	<string>Main</string>
+
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
@@ -59,12 +60,15 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
 
-	<!-- Privacy usage descriptions - required by App Store -->
+	<!-- Firebase / Push Notifications -->
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>fetch</string>
+		<string>remote-notification</string>
+	</array>
+
+	<!-- Privacy usage descriptions -->
 	<key>NSCameraUsageDescription</key>
 	<string>Power Stack necesita acceso a la cámara para actualizar tu foto de perfil.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -73,12 +77,15 @@
 	<string>Power Stack necesita permiso para guardar imágenes en tu galería.</string>
 	<key>NSUserNotificationUsageDescription</key>
 	<string>Power Stack enviará notificaciones para recordarte tus rutinas de entrenamiento.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>Power Stack lee tu peso y actividad de Apple Health para mostrarte tu progreso fitness.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Power Stack guarda tus entrenamientos y registros de peso en Apple Health.</string>
 
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>itms-apps</string>
 		<string>https</string>
 	</array>
-
 </dict>
 </plist>
