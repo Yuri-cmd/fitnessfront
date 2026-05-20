@@ -109,7 +109,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _buildWeightChart(List<dynamic> history) {
     final spots = history.asMap().entries.map((e) {
-      return FlSpot(e.key.toDouble(), (e.value['weight'] as num).toDouble());
+      return FlSpot(e.key.toDouble(), num.tryParse(e.value['weight'].toString())?.toDouble() ?? 0.0);
     }).toList();
 
     final weights = spots.map((s) => s.y);
@@ -180,8 +180,8 @@ class _StatsScreenState extends State<StatsScreen> {
   }
 
   Widget _buildWeightTrend(List<dynamic> history) {
-    final last = (history.last['weight'] as num).toDouble();
-    final prev = (history[history.length - 2]['weight'] as num).toDouble();
+    final last = num.tryParse(history.last['weight'].toString())?.toDouble() ?? 0.0;
+    final prev = num.tryParse(history[history.length - 2]['weight'].toString())?.toDouble() ?? 0.0;
     final diff = last - prev;
     final isDown = diff < 0;
     final color = isDown ? AppColors.primary : AppColors.alert;
@@ -213,9 +213,9 @@ class _StatsScreenState extends State<StatsScreen> {
   Widget _buildHeatmap(List<dynamic> activity) {
     final dateMap = <String, int>{};
     for (final item in activity) {
-      dateMap[item['date'] as String] = (item['count'] as num).toInt();
+      dateMap[item['date'].toString()] = num.tryParse(item['count'].toString())?.toInt() ?? 0;
     }
-    final total = activity.fold(0, (s, i) => s + (i['count'] as num).toInt());
+    final total = activity.fold(0, (s, i) => s + (num.tryParse(i['count'].toString())?.toInt() ?? 0));
 
     const weeks = 16;
     final now = DateTime.now();
@@ -301,7 +301,7 @@ class _StatsScreenState extends State<StatsScreen> {
 
   Widget _buildVolumeChart(List<dynamic> volume) {
     final maxV = volume.fold(0.0, (m, v) {
-      final vol = (v['total_volume'] as num).toDouble();
+      final vol = num.tryParse(v['total_volume'].toString())?.toDouble() ?? 0.0;
       return vol > m ? vol : m;
     });
 
@@ -314,7 +314,7 @@ class _StatsScreenState extends State<StatsScreen> {
             x: e.key,
             barRods: [
               BarChartRodData(
-                toY: (e.value['total_volume'] as num).toDouble(),
+                toY: num.tryParse(e.value['total_volume'].toString())?.toDouble() ?? 0.0,
                 color: AppColors.primary,
                 width: 18,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
@@ -410,7 +410,7 @@ class _StatsScreenState extends State<StatsScreen> {
             ),
           ),
           Text(
-            '${(record['max_weight'] as num).toStringAsFixed(1)} kg',
+            '${(num.tryParse(record['max_weight'].toString()) ?? 0).toStringAsFixed(1)} kg',
             style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.primary, fontSize: 15),
           ),
         ],

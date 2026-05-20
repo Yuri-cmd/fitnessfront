@@ -28,4 +28,12 @@ class AuthService {
   Future<Response> deleteAccount() async {
     return await _dio.delete('/account');
   }
+  
+  Future<void> saveFcmToken(String token) async {
+    await _dio.post('/fcm-token', data: {'token': token, 'platform': 'ios'});
+  }
+
+  Future<void> removeFcmToken(String token) async {
+    await _dio.delete('/fcm-token', data: {'token': token});
+  }
 }

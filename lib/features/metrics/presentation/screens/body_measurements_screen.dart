@@ -126,6 +126,7 @@ class _BodyMeasurementsScreenState extends State<BodyMeasurementsScreen> {
     return Scaffold(
       appBar: AppBar(title: const Text('MEDIDAS CORPORALES')),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_measurements',
         onPressed: _showAddDialog,
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.black,

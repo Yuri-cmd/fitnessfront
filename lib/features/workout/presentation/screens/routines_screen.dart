@@ -58,6 +58,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
         ),
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_routines',
         onPressed: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (context) => const CreateRoutineScreen()),
@@ -225,7 +226,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
                   margin: const EdgeInsets.only(bottom: 24),
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: Theme.of(context).colorScheme.surface,
                     borderRadius: BorderRadius.circular(16),
                     boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]
                   ),

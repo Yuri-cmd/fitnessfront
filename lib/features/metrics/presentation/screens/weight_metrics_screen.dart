@@ -22,6 +22,7 @@ class WeightMetricsScreen extends StatelessWidget {
         ],
       ),
       floatingActionButton: FloatingActionButton(
+        heroTag: 'fab_weight',
         onPressed: () => _showAddWeightDialog(context),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),

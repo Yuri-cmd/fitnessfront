@@ -8,6 +8,8 @@ class WaterService {
 
   Future<Response> getTodayWater() => _dio.get('/water-logs');
 
-  Future<Response> logWater(int amountMl) =>
-      _dio.post('/water-logs', data: {'amount_ml': amountMl});
+  Future<Response> logGlasses(int glasses) =>
+      _dio.post('/water-logs', data: {'glasses': glasses});
+
+  Future<Response> removeLastGlass() => _dio.delete('/water-logs/last');
 }

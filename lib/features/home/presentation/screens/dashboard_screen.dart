@@ -3,17 +3,11 @@ import 'package:provider/provider.dart';
 import '../../../../core/theme/app_colors.dart';
 import '../../../../features/metrics/presentation/controllers/fitness_controller.dart';
 import '../../../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../../../features/workout/presentation/screens/routines_screen.dart';
-import '../../../../features/metrics/presentation/screens/weight_metrics_screen.dart';
 import '../../../../features/workout/presentation/controllers/workout_controller.dart';
-import '../../../../features/workout/presentation/screens/goals_screen.dart';
-import '../../../../features/stats/presentation/screens/stats_screen.dart';
-import '../../../../features/stats/presentation/controllers/stats_controller.dart';
-import '../../../../features/wiki/presentation/screens/wiki_screen.dart';
-import '../../../../features/metrics/presentation/screens/body_measurements_screen.dart';
 import '../../../../features/water/presentation/controllers/water_controller.dart';
 import '../../../../core/theme/theme_controller.dart';
 import '../../../../core/services/version_service.dart';
+import '../../../../features/streak/presentation/controllers/streak_controller.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -27,13 +21,51 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       context.read<FitnessController>().loadProfile();
       context.read<FitnessController>().loadWeightLogs();
       context.read<WorkoutController>().loadWeeklyProgress();
       context.read<WaterController>().loadTodayWater();
-      context.read<StatsController>().loadAchievements();
+      context.read<StreakController>().load();
       VersionService.checkAndPrompt(context);
+      _offerBiometricIfNeeded();
     });
+  }
+
+  void _offerBiometricIfNeeded() {
+    final auth = context.read<AuthController>();
+    if (!auth.isBiometricAvailable || auth.isBiometricEnabled) return;
+    showDialog<void>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Text('Acceso biométrico'),
+        content: const Text(
+          '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Ahora no'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              auth.setBiometricEnabled(true);
+            },
+            child: const Text('Activar',
+                style: TextStyle(color: AppColors.primary)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String get _greeting {
+    final h = TimeOfDay.now().hour;
+    if (h < 12) return 'Buenos días';
+    if (h < 19) return 'Buenas tardes';
+    return 'Buenas noches';
   }
 
   @override
@@ -41,7 +73,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final fitness = context.watch<FitnessController>();
     final workout = context.watch<WorkoutController>();
     final water = context.watch<WaterController>();
-    final stats = context.watch<StatsController>();
+    final streak = context.watch<StreakController>();
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       appBar: AppBar(
@@ -72,23 +105,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
             itemBuilder: (_) => [
               const PopupMenuItem(
                 value: 'logout',
-                child: Row(
-                  children: [
-                    Icon(Icons.logout, size: 18),
-                    SizedBox(width: 10),
-                    Text('Cerrar sesión'),
-                  ],
-                ),
+                child: Row(children: [
+                  Icon(Icons.logout, size: 18),
+                  SizedBox(width: 10),
+                  Text('Cerrar sesión'),
+                ]),
               ),
               const PopupMenuItem(
                 value: 'delete',
-                child: Row(
-                  children: [
-                    Icon(Icons.delete_forever, size: 18, color: Colors.red),
-                    SizedBox(width: 10),
-                    Text('Eliminar cuenta', style: TextStyle(color: Colors.red)),
-                  ],
-                ),
+                child: Row(children: [
+                  Icon(Icons.delete_forever, size: 18, color: Colors.red),
+                  SizedBox(width: 10),
+                  Text('Eliminar cuenta',
+                      style: TextStyle(color: Colors.red)),
+                ]),
               ),
             ],
           ),
@@ -102,46 +132,28 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 await fitness.loadWeightLogs();
                 await workout.loadWeeklyProgress();
                 await water.loadTodayWater();
-                await stats.loadAchievements();
+                await streak.load();
               },
               child: SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(20),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _buildHeader(),
-                    const SizedBox(height: 24),
-                    _buildBmiSummary(fitness),
-                    const SizedBox(height: 24),
-                    _buildWaterSection(water),
-                    const SizedBox(height: 24),
-                    if (stats.achievements.isNotEmpty) ...[
-                      _buildAchievementsSection(stats.achievements),
-                      const SizedBox(height: 24),
-                    ],
-                    const Text(
-                      'MÓDULOS PRINCIPALES',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                        fontSize: 12,
+                    _buildHeroBanner(fitness, streak, isDark),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildQuickStats(fitness, workout),
+                          const SizedBox(height: 20),
+                          _buildWaterSection(water),
+                          const SizedBox(height: 20),
+                          _buildWeeklySummary(workout),
+                          const SizedBox(height: 24),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
-                    _buildModuleGrid(context),
-                    const SizedBox(height: 24),
-                    const Text(
-                      'RESUMEN SEMANAL',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        color: Colors.grey,
-                        fontSize: 12,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    _buildWeeklySummary(workout),
-                    const SizedBox(height: 8),
                   ],
                 ),
               ),
@@ -149,79 +161,219 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildHeader() {
-    final name = context.read<AuthController>().userName.toUpperCase();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+  // ─── Hero banner ──────────────────────────────────────────────────────────
+
+  Widget _buildHeroBanner(FitnessController fitness, StreakController streak, bool isDark) {
+    final name = context.read<AuthController>().userName;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: isDark
+              ? [const Color(0xFF1A1F12), const Color(0xFF252C18)]
+              : [const Color(0xFF2E3D1A), const Color(0xFF4A6024)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  _greeting,
+                  style: TextStyle(
+                    fontSize: 13,
+                    color: AppColors.primary.withValues(alpha: 0.85),
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  name,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 0.5,
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                        color: AppColors.primary.withValues(alpha: 0.4)),
+                  ),
+                  child: Text(
+                    fitness.bmi != null
+                        ? 'IMC ${fitness.bmi!.toStringAsFixed(1)} · ${fitness.bmiCategory}'
+                        : 'Completa tu perfil',
+                    style: const TextStyle(
+                      fontSize: 11,
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Flexible(child: _streakPill('🔥', streak.workoutStreak, 'entreno')),
+                    const SizedBox(width: 8),
+                    Flexible(child: _streakPill('💧', streak.waterStreak, 'agua')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.primary.withValues(alpha: 0.15),
+              border: Border.all(
+                  color: AppColors.primary.withValues(alpha: 0.4), width: 2),
+            ),
+            child: const Icon(Icons.fitness_center_rounded,
+                size: 34, color: AppColors.primary),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _streakPill(String emoji, int days, String label) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(emoji, style: const TextStyle(fontSize: 13)),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              '$days ${days == 1 ? 'día' : 'días'} de $label',
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 11,
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Quick stats ──────────────────────────────────────────────────────────
+
+  Widget _buildQuickStats(FitnessController fitness, WorkoutController workout) {
+    final trained = workout.weeklyProgress.values.where((v) => v).length;
+    return Row(
       children: [
-        Text(
-          'HOLA, $name',
-          style: TextStyle(
-            fontSize: 14,
-            color: AppColors.primary.withValues(alpha: 0.7),
-            fontWeight: FontWeight.bold,
+        Expanded(
+          child: _statCard(
+            icon: Icons.local_fire_department_rounded,
+            iconColor: Colors.orange,
+            value: '$trained',
+            label: 'Esta semana',
+            sub: trained == 1 ? 'entrenamiento' : 'entrenamientos',
           ),
         ),
-        const Text(
-          'Bienvenido de nuevo',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: AppColors.textTitle,
+        const SizedBox(width: 12),
+        Expanded(
+          child: _statCard(
+            icon: Icons.monitor_weight_outlined,
+            iconColor: AppColors.primary,
+            value: fitness.weight != null
+                ? '${fitness.weight!.toStringAsFixed(1)} kg'
+                : '--',
+            label: 'Peso actual',
+            sub: fitness.height != null
+                ? '${fitness.height!.toStringAsFixed(0)} cm'
+                : 'sin datos',
           ),
         ),
       ],
     );
   }
 
-  Widget _buildBmiSummary(FitnessController fitness) {
-    return Card(
-      elevation: 0,
-      color: AppColors.primary.withValues(alpha: 0.1),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'TU ESTADO FÍSICO',
-                    style: TextStyle(
+  Widget _statCard({
+    required IconData icon,
+    required Color iconColor,
+    required String value,
+    required String label,
+    required String sub,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surface,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(9),
+            decoration: BoxDecoration(
+              color: iconColor.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Icon(icon, color: iconColor, size: 20),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w900, fontSize: 18),
+                ),
+                Text(
+                  label,
+                  style: const TextStyle(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    fitness.bmiCategory.toUpperCase(),
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                  ),
-                  Text(
-                    'IMC: ${fitness.bmi?.toStringAsFixed(1) ?? '--'}',
-                    style: const TextStyle(color: Colors.black54),
-                  ),
-                ],
-              ),
+                      color: Colors.grey),
+                ),
+                Text(
+                  sub,
+                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                ),
+              ],
             ),
-            const Icon(Icons.speed, size: 48, color: AppColors.primary),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  // ─── Sección de Agua ───────────────────────────────────────────────────────
+  // ─── Agua ─────────────────────────────────────────────────────────────────
 
   Widget _buildWaterSection(WaterController water) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: AppColors.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
       ),
       child: Column(
@@ -229,49 +381,105 @@ class _DashboardScreenState extends State<DashboardScreen> {
         children: [
           Row(
             children: [
-              const Icon(Icons.water_drop, color: AppColors.secondary, size: 20),
+              const Icon(Icons.water_drop_rounded,
+                  color: AppColors.secondary, size: 18),
               const SizedBox(width: 8),
               const Text(
                 'HIDRATACIÓN HOY',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  fontSize: 12,
+                  fontSize: 11,
                   color: AppColors.secondary,
+                  letterSpacing: 1,
                 ),
               ),
               const Spacer(),
               Text(
-                '${water.todayMl} / 2000 ml',
+                '${water.glasses}/${water.goalGlasses}',
                 style: const TextStyle(
-                  fontWeight: FontWeight.bold,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 18,
                   color: AppColors.secondary,
                 ),
               ),
+              const SizedBox(width: 4),
+              const Text(
+                'vasos',
+                style: TextStyle(fontSize: 11, color: AppColors.secondary),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 14),
           ClipRRect(
             borderRadius: BorderRadius.circular(8),
             child: LinearProgressIndicator(
               value: water.progress,
-              backgroundColor: AppColors.secondary.withValues(alpha: 0.15),
-              color: AppColors.secondary,
-              minHeight: 8,
+              backgroundColor: AppColors.secondary.withValues(alpha: 0.12),
+              color: water.goalReached
+                  ? AppColors.primary
+                  : AppColors.secondary,
+              minHeight: 6,
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            water.statusText,
-            style: const TextStyle(fontSize: 11, color: Colors.grey),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                water.statusText,
+                style: const TextStyle(fontSize: 11, color: Colors.grey),
+              ),
+              if (water.goalReached)
+                Container(
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: const Text(
+                    '✓ META',
+                    style: TextStyle(
+                        fontSize: 10,
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+            ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
           Row(
             children: [
-              _buildWaterBtn(water, 200),
-              const SizedBox(width: 8),
-              _buildWaterBtn(water, 350),
-              const SizedBox(width: 8),
-              _buildWaterBtn(water, 500),
+              Expanded(
+                child: FilledButton.icon(
+                  onPressed: water.isLoading ? null : water.addGlass,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('VASO',
+                      style: TextStyle(
+                          fontSize: 12, fontWeight: FontWeight.bold)),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppColors.secondary,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              OutlinedButton(
+                onPressed:
+                    (water.isLoading || water.glasses == 0) ? null : water.removeGlass,
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.grey,
+                  side: BorderSide(color: Colors.grey.withValues(alpha: 0.35)),
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(
+                      vertical: 11, horizontal: 16),
+                ),
+                child: const Icon(Icons.remove, size: 16),
+              ),
             ],
           ),
         ],
@@ -279,272 +487,100 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildWaterBtn(WaterController water, int ml) {
-    return Expanded(
-      child: OutlinedButton(
-        onPressed: water.isLoading ? null : () => water.logWater(ml),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: AppColors.secondary),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          padding: const EdgeInsets.symmetric(vertical: 8),
-        ),
-        child: Text(
-          '+${ml}ml',
-          style: const TextStyle(color: AppColors.secondary, fontSize: 12),
-        ),
-      ),
-    );
-  }
+  // ─── Resumen semanal ──────────────────────────────────────────────────────
 
-  // ─── Sección de Logros ────────────────────────────────────────────────────
+  Widget _buildWeeklySummary(WorkoutController workout) {
+    const days = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
+    final today = DateTime.now().weekday; // 1=lunes … 7=domingo
 
-  String _resolveIcon(String? raw) {
-    if (raw == null || raw.isEmpty) return '🏆';
-    // Si ya es un emoji (no empieza con "fa-"), lo usamos directo
-    if (!raw.startsWith('fa-')) return raw;
-    const map = {
-      'fa-trophy': '🏆',
-      'fa-medal': '🥇',
-      'fa-star': '⭐',
-      'fa-fire': '🔥',
-      'fa-bolt': '⚡',
-      'fa-dumbbell': '🏋️',
-      'fa-heart': '❤️',
-      'fa-crown': '👑',
-      'fa-check': '✅',
-      'fa-flag': '🚩',
-      'fa-running': '🏃',
-      'fa-bicycle': '🚴',
-      'fa-swimmer': '🏊',
-      'fa-walking': '🚶',
-      'fa-weight': '⚖️',
-      'fa-apple-alt': '🍎',
-      'fa-bed': '🛏️',
-      'fa-brain': '🧠',
-      'fa-chart-line': '📈',
-      'fa-calendar-check': '📅',
-    };
-    for (final entry in map.entries) {
-      if (raw.contains(entry.key)) return entry.value;
-    }
-    return '🏆';
-  }
-
-  Widget _buildAchievementsSection(List<dynamic> achievements) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'LOGROS OBTENIDOS',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.grey,
-            fontSize: 12,
-          ),
-        ),
-        const SizedBox(height: 12),
-        SizedBox(
-          height: 72,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: achievements.length,
-            itemBuilder: (context, index) {
-              final ach = achievements[index];
-              return Tooltip(
-                message: ach['description'] ?? ach['name'] ?? '',
-                child: Container(
-                  width: 64,
-                  margin: const EdgeInsets.only(right: 12),
-                  decoration: BoxDecoration(
-                    color: Colors.amber.withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border:
-                        Border.all(color: Colors.amber.withValues(alpha: 0.4)),
-                  ),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(
-                        _resolveIcon(ach['icon']?.toString()),
-                        style: const TextStyle(fontSize: 24),
-                        maxLines: 1,
-                        overflow: TextOverflow.clip,
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        (ach['name'] ?? '').toString().split(' ').first,
-                        style:
-                            const TextStyle(fontSize: 8, color: Colors.grey),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
-    );
-  }
-
-  // ─── Grid de Módulos ──────────────────────────────────────────────────────
-
-  Widget _buildModuleGrid(BuildContext context) {
-    return GridView.count(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      crossAxisCount: 2,
-      mainAxisSpacing: 16,
-      crossAxisSpacing: 16,
-      childAspectRatio: 1.1,
-      children: [
-        _buildModuleCard(
-          context,
-          'PESO',
-          Icons.scale,
-          AppColors.primary,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const WeightMetricsScreen()),
-          ),
-        ),
-        _buildModuleCard(
-          context,
-          'RUTINAS',
-          Icons.fitness_center,
-          AppColors.secondary,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RoutinesScreen()),
-          ),
-        ),
-        _buildModuleCard(
-          context,
-          'METAS',
-          Icons.emoji_events,
-          Colors.orange,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const GoalsScreen()),
-          ),
-        ),
-        _buildModuleCard(
-          context,
-          'ESTADÍSTICAS',
-          Icons.bar_chart,
-          Colors.purple,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const StatsScreen()),
-          ),
-        ),
-        _buildModuleCard(
-          context,
-          'WIKI',
-          Icons.menu_book,
-          Colors.teal,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const WikiScreen()),
-          ),
-        ),
-        _buildModuleCard(
-          context,
-          'MEDIDAS',
-          Icons.straighten,
-          Colors.deepOrange,
-          () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const BodyMeasurementsScreen()),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildModuleCard(
-    BuildContext context,
-    String title,
-    IconData icon,
-    Color color,
-    VoidCallback onTap,
-  ) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(24),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(24),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
-            )
-          ],
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
+        Row(
           children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.1),
-                shape: BoxShape.circle,
+            const Text(
+              'SEMANA ACTUAL',
+              style: TextStyle(
+                fontWeight: FontWeight.bold,
+                color: Colors.grey,
+                fontSize: 11,
+                letterSpacing: 1,
               ),
-              child: Icon(icon, color: color, size: 28),
             ),
-            const SizedBox(height: 12),
+            const Spacer(),
             Text(
-              title,
-              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+              '${workout.weeklyProgress.values.where((v) => v).length}/7 días',
+              style: const TextStyle(
+                  fontSize: 11,
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.bold),
             ),
           ],
         ),
-      ),
+        const SizedBox(height: 14),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: List.generate(7, (i) {
+            final done = workout.weeklyProgress[i + 1] ?? false;
+            final isToday = (i + 1) == today;
+            return _dayBubble(days[i], done, isToday);
+          }),
+        ),
+      ],
     );
   }
 
-  // ─── Resumen Semanal ──────────────────────────────────────────────────────
+  Widget _dayBubble(String day, bool done, bool isToday) {
+    Color bg;
+    Color fg;
+    if (done) {
+      bg = AppColors.primary;
+      fg = Colors.black;
+    } else if (isToday) {
+      bg = AppColors.primary.withValues(alpha: 0.15);
+      fg = AppColors.primary;
+    } else {
+      bg = Theme.of(context).colorScheme.surfaceContainerHighest;
+      fg = Colors.grey;
+    }
 
-  Widget _buildWeeklySummary(WorkoutController workout) {
-    const days = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: List.generate(7, (index) {
-          final isCompleted = workout.weeklyProgress[index + 1] ?? false;
-          return _buildDayStat(days[index], isCompleted);
-        }),
-      ),
-    );
-  }
-
-  Widget _buildDayStat(String day, bool completed) {
     return Column(
       children: [
-        Text(day, style: const TextStyle(fontSize: 10, color: Colors.grey)),
-        const SizedBox(height: 8),
-        Icon(
-          completed ? Icons.check_circle : Icons.radio_button_unchecked,
-          color:
-              completed ? AppColors.primary : Colors.grey.withValues(alpha: 0.3),
-          size: 20,
+        AnimatedContainer(
+          duration: const Duration(milliseconds: 300),
+          width: 38,
+          height: 38,
+          decoration: BoxDecoration(
+            color: bg,
+            shape: BoxShape.circle,
+            border: isToday && !done
+                ? Border.all(color: AppColors.primary, width: 1.5)
+                : null,
+          ),
+          child: Center(
+            child: done
+                ? Icon(Icons.check_rounded, size: 18, color: fg)
+                : Text(
+                    day[0],
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 13, color: fg),
+                  ),
+          ),
+        ),
+        const SizedBox(height: 5),
+        Text(
+          day,
+          style: TextStyle(
+            fontSize: 8,
+            color: isToday ? AppColors.primary : Colors.grey,
+            fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
+          ),
         ),
       ],
     );
   }
 
-  // ─── Diálogo Eliminar Cuenta ─────────────────────────────────────────────
+  // ─── Diálogos ─────────────────────────────────────────────────────────────
 
   void _showDeleteAccountDialog(BuildContext context) {
     showDialog(
@@ -566,16 +602,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               Navigator.pop(ctx);
               await context.read<AuthController>().deleteAccount();
             },
-            child: const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
+            child:
+                const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
           ),
         ],
       ),
     );
   }
 
-  // ─── Diálogo de Perfil ────────────────────────────────────────────────────
-
-  void _showUpdateProfileDialog(BuildContext context, FitnessController fitness) {
+  void _showUpdateProfileDialog(
+      BuildContext context, FitnessController fitness) {
     final heightController =
         TextEditingController(text: fitness.height?.toString());
     final weightController =
