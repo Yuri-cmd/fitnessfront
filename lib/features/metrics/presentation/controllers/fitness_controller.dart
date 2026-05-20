@@ -11,7 +11,11 @@ class FitnessController with ChangeNotifier {
 
   double? _height;
   double? _weight;
+  double? _goalWeight;
   double? _bmi;
+  DateTime? _birthDate;
+  String? _gender;
+  String? _activityLevel;
   List<dynamic> _weightLogs = [];
   bool _isLoading = false;
 
@@ -19,7 +23,11 @@ class FitnessController with ChangeNotifier {
 
   double? get height => _height;
   double? get weight => _weight;
+  double? get goalWeight => _goalWeight;
   double? get bmi => _bmi;
+  DateTime? get birthDate => _birthDate;
+  String? get gender => _gender;
+  String? get activityLevel => _activityLevel;
   List<dynamic> get weightLogs => _weightLogs;
   bool get isLoading => _isLoading;
 
@@ -60,16 +68,57 @@ class FitnessController with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<bool> updateFullProfile({
+    double? height,
+    double? weight,
+    double? goalWeight,
+    DateTime? birthDate,
+    String? gender,
+    String? activityLevel,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+    try {
+      final payload = <String, dynamic>{};
+      if (height != null) payload['height'] = height;
+      if (weight != null) payload['current_weight'] = weight;
+      if (goalWeight != null) payload['goal_weight'] = goalWeight;
+      if (birthDate != null) {
+        payload['birth_date'] =
+            '${birthDate.year}-${birthDate.month.toString().padLeft(2, '0')}-${birthDate.day.toString().padLeft(2, '0')}';
+      }
+      if (gender != null) payload['gender'] = gender;
+      if (activityLevel != null) payload['activity_level'] = activityLevel;
+
+      final resp = await _authService.updateProfile(payload);
+      if (resp.statusCode == 200) {
+        await loadProfile();
+        _isLoading = false;
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+    _isLoading = false;
+    notifyListeners();
+    return false;
+  }
+
   Future<void> loadProfile() async {
     _isLoading = true;
     notifyListeners();
     try {
       final response = await _authService.getProfile();
       if (response.statusCode == 200) {
-        // Asegurarse de que los valores se extraigan correctamente del objeto user si es necesario
         final data = response.data['user'] ?? response.data;
         _height = double.tryParse(data['height'].toString());
         _weight = double.tryParse(data['current_weight'].toString());
+        _goalWeight = double.tryParse(data['goal_weight'].toString());
+        _gender = data['gender'] as String?;
+        _activityLevel = data['activity_level'] as String?;
+        final bd = data['birth_date'];
+        _birthDate = bd != null && bd != 'null' ? DateTime.tryParse(bd.toString()) : null;
         calculateBmi();
       }
     } catch (e) {
@@ -85,7 +134,6 @@ class FitnessController with ChangeNotifier {
       _weight = weight;
       calculateBmi();
       await loadWeightLogs();
-      // Sincronizar con Apple Health en segundo plano
       _healthService.saveWeight(weight);
     } catch (e) {
       debugPrint(e.toString());
@@ -97,7 +145,7 @@ class FitnessController with ChangeNotifier {
   }
 
   Future<void> loadWeightLogs() async {
-     try {
+    try {
       final response = await _metricsService.getWeightLogs();
       if (response.statusCode == 200) {
         _weightLogs = response.data;

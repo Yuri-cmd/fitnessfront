@@ -612,48 +612,314 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   void _showUpdateProfileDialog(
       BuildContext context, FitnessController fitness) {
-    final heightController =
-        TextEditingController(text: fitness.height?.toString());
-    final weightController =
-        TextEditingController(text: fitness.weight?.toString());
-
-    showDialog(
+    showModalBottomSheet(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('DATOS BÁSICOS'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => _ProfileSheet(fitness: fitness),
+    );
+  }
+}
+
+// ─── Bottom sheet de perfil ────────────────────────────────────────────────────
+
+class _ProfileSheet extends StatefulWidget {
+  final FitnessController fitness;
+  const _ProfileSheet({required this.fitness});
+
+  @override
+  State<_ProfileSheet> createState() => _ProfileSheetState();
+}
+
+class _ProfileSheetState extends State<_ProfileSheet> {
+  late final TextEditingController _heightCtrl;
+  late final TextEditingController _weightCtrl;
+  late final TextEditingController _goalCtrl;
+  DateTime? _birthDate;
+  String? _gender;
+  String? _activityLevel;
+  bool _saving = false;
+
+  static const _activities = [
+    ('sedentary',           'Sedentario',       'Poco o ningún ejercicio'),
+    ('lightly_active',      'Ligeramente activo','Ejercicio ligero 1–3 días/sem'),
+    ('moderately_active',   'Moderadamente activo','Ejercicio moderado 3–5 días/sem'),
+    ('very_active',         'Muy activo',       'Ejercicio intenso 6–7 días/sem'),
+    ('extra_active',        'Extra activo',     'Trabajo físico + entreno diario'),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    final f = widget.fitness;
+    _heightCtrl = TextEditingController(text: f.height?.toStringAsFixed(0));
+    _weightCtrl = TextEditingController(text: f.weight?.toStringAsFixed(1));
+    _goalCtrl   = TextEditingController(text: f.goalWeight?.toStringAsFixed(1));
+    _birthDate     = f.birthDate;
+    _gender        = f.gender;
+    _activityLevel = f.activityLevel;
+  }
+
+  @override
+  void dispose() {
+    _heightCtrl.dispose();
+    _weightCtrl.dispose();
+    _goalCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _pickDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 25),
+      firstDate: DateTime(1920),
+      lastDate: DateTime(now.year - 5),
+      helpText: 'Fecha de nacimiento',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    final ok = await widget.fitness.updateFullProfile(
+      height:        double.tryParse(_heightCtrl.text),
+      weight:        double.tryParse(_weightCtrl.text),
+      goalWeight:    double.tryParse(_goalCtrl.text),
+      birthDate:     _birthDate,
+      gender:        _gender,
+      activityLevel: _activityLevel,
+    );
+    if (!mounted) return;
+    setState(() => _saving = false);
+    Navigator.pop(context);
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(ok ? 'Perfil actualizado' : 'Error al guardar'),
+      backgroundColor: ok ? AppColors.primary : Colors.red.shade400,
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+    ));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return DraggableScrollableSheet(
+      initialChildSize: 0.88,
+      maxChildSize: 0.95,
+      minChildSize: 0.5,
+      builder: (_, scroll) => Container(
+        decoration: BoxDecoration(
+          color: scheme.surface,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
           children: [
-            TextField(
-              controller: heightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Talla (cm)'),
+            // Handle
+            const SizedBox(height: 12),
+            Container(
+              width: 40, height: 4,
+              decoration: BoxDecoration(
+                color: scheme.onSurfaceVariant.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
             const SizedBox(height: 16),
-            TextField(
-              controller: weightController,
-              keyboardType: TextInputType.number,
-              decoration: const InputDecoration(labelText: 'Peso Inicial (kg)'),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Row(
+                children: [
+                  const Text('MI PERFIL',
+                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                  const Spacer(),
+                  if (_saving)
+                    const SizedBox(width: 20, height: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2))
+                  else
+                    FilledButton(
+                      onPressed: _save,
+                      style: FilledButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.black,
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: const Text('GUARDAR',
+                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                    ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 8),
+            const Divider(),
+            Expanded(
+              child: ListView(
+                controller: scroll,
+                padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
+                children: [
+                  _sectionLabel('MEDIDAS CORPORALES'),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _numField(_heightCtrl,  'Talla (cm)',  Icons.height_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _numField(_weightCtrl,  'Peso actual (kg)', Icons.monitor_weight_outlined)),
+                  ]),
+                  const SizedBox(height: 12),
+                  _numField(_goalCtrl, 'Peso objetivo (kg)', Icons.flag_outlined),
+                  const SizedBox(height: 24),
+
+                  _sectionLabel('FECHA DE NACIMIENTO'),
+                  const SizedBox(height: 12),
+                  GestureDetector(
+                    onTap: _pickDate,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: scheme.outline.withValues(alpha: 0.4)),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.cake_outlined,
+                              size: 20, color: scheme.onSurfaceVariant),
+                          const SizedBox(width: 12),
+                          Text(
+                            _birthDate != null
+                                ? '${_birthDate!.day.toString().padLeft(2,'0')}/${_birthDate!.month.toString().padLeft(2,'0')}/${_birthDate!.year}'
+                                : 'Seleccionar fecha',
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: _birthDate != null
+                                  ? scheme.onSurface
+                                  : scheme.onSurfaceVariant,
+                            ),
+                          ),
+                          const Spacer(),
+                          Icon(Icons.chevron_right_rounded,
+                              color: scheme.onSurfaceVariant),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  _sectionLabel('GÉNERO'),
+                  const SizedBox(height: 12),
+                  Row(children: [
+                    Expanded(child: _genderChip('male',   'Masculino', Icons.male_rounded)),
+                    const SizedBox(width: 12),
+                    Expanded(child: _genderChip('female', 'Femenino',  Icons.female_rounded)),
+                  ]),
+                  const SizedBox(height: 24),
+
+                  _sectionLabel('NIVEL DE ACTIVIDAD'),
+                  const SizedBox(height: 12),
+                  ..._activities.map((a) => _activityTile(a.$1, a.$2, a.$3)),
+                  const SizedBox(height: 8),
+                ],
+              ),
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('CANCELAR'),
+      ),
+    );
+  }
+
+  Widget _sectionLabel(String text) => Text(
+    text,
+    style: TextStyle(
+      fontSize: 10,
+      fontWeight: FontWeight.bold,
+      color: Theme.of(context).colorScheme.onSurfaceVariant,
+      letterSpacing: 1.4,
+    ),
+  );
+
+  Widget _numField(TextEditingController ctrl, String label, IconData icon) =>
+      TextField(
+        controller: ctrl,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+        decoration: InputDecoration(
+          labelText: label,
+          prefixIcon: Icon(icon, size: 20),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
+
+  Widget _genderChip(String value, String label, IconData icon) {
+    final selected = _gender == value;
+    final color = AppColors.primary;
+    return GestureDetector(
+      onTap: () => setState(() => _gender = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+            width: selected ? 1.5 : 1,
           ),
-          ElevatedButton(
-            onPressed: () {
-              final h = double.tryParse(heightController.text);
-              final w = double.tryParse(weightController.text);
-              if (h != null && w != null) {
-                context.read<FitnessController>().updateProfileMetrics(h, w);
-              }
-              Navigator.pop(context);
-            },
-            child: const Text('GUARDAR'),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(icon, size: 20, color: selected ? color : Colors.grey),
+            const SizedBox(width: 8),
+            Text(label,
+                style: TextStyle(
+                  fontWeight: selected ? FontWeight.bold : FontWeight.normal,
+                  color: selected ? color : null,
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _activityTile(String value, String label, String sub) {
+    final selected = _activityLevel == value;
+    final color = AppColors.primary;
+    return GestureDetector(
+      onTap: () => setState(() => _activityLevel = value),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        margin: const EdgeInsets.only(bottom: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+            width: selected ? 1.5 : 1,
           ),
-        ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(label,
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: selected ? color : null,
+                      )),
+                  Text(sub,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      )),
+                ],
+              ),
+            ),
+            if (selected)
+              Icon(Icons.check_circle_rounded, color: color, size: 20),
+          ],
+        ),
       ),
     );
   }

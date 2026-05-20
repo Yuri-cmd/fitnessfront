@@ -85,16 +85,23 @@ class AuthController with ChangeNotifier {
     return authenticated;
   }
 
-  Future<bool> register(String name, String email, String password) async {
+  Future<bool> register(
+    String name,
+    String email,
+    String password, {
+    String? birthDate,
+  }) async {
     _isLoading = true;
     _registerError = null;
     notifyListeners();
     try {
-      final response = await _authService.register({
+      final payload = <String, dynamic>{
         'name': name,
         'email': email,
         'password': password,
-      });
+      };
+      if (birthDate != null) payload['birth_date'] = birthDate;
+      final response = await _authService.register(payload);
       final code = response.statusCode ?? 0;
       if (code >= 200 && code < 300) {
         _token = response.data['token'];

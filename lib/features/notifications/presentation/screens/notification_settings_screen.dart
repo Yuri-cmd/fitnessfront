@@ -94,6 +94,7 @@ class _NotificationSettingsScreenState
           : ListView(
               padding: const EdgeInsets.all(20),
               children: [
+                // ── Recordatorio de entrenamiento ──────────────────────────
                 _buildSection(
                   icon: Icons.fitness_center_rounded,
                   color: AppColors.primary,
@@ -129,6 +130,8 @@ class _NotificationSettingsScreenState
                   ),
                 ),
                 const SizedBox(height: 20),
+
+                // ── Recordatorios de agua ──────────────────────────────────
                 _buildSection(
                   icon: Icons.water_drop_rounded,
                   color: AppColors.secondary,
@@ -170,8 +173,9 @@ class _NotificationSettingsScreenState
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
+                            color: Theme.of(context)
+                                .colorScheme
+                                .onSurfaceVariant,
                             letterSpacing: 1.2,
                           ),
                         ),
@@ -205,7 +209,8 @@ class _NotificationSettingsScreenState
                                 const Spacer(),
                                 if (ctrl.waterTimes.length > 1)
                                   IconButton(
-                                    icon: const Icon(Icons.remove_circle_outline,
+                                    icon: const Icon(
+                                        Icons.remove_circle_outline,
                                         size: 20),
                                     color: Colors.red.shade300,
                                     visualDensity: VisualDensity.compact,
@@ -232,7 +237,98 @@ class _NotificationSettingsScreenState
                     ],
                   ),
                 ),
+                const SizedBox(height: 20),
+
+                // ── Motivación mañanera ────────────────────────────────────
+                _buildSection(
+                  icon: Icons.wb_sunny_rounded,
+                  color: Colors.orange,
+                  title: 'Motivación mañanera',
+                  subtitle: 'Una frase para arrancar el día con energía',
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Activar motivación matutina'),
+                        value: ctrl.morningEnabled,
+                        activeThumbColor: Colors.orange,
+                        onChanged: ctrl.setMorningEnabled,
+                      ),
+                      if (ctrl.morningEnabled) ...[
+                        const Divider(height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Hora de envío'),
+                          trailing: _timePill(
+                            _formatTime(ctrl.morningTime),
+                            Colors.orange,
+                          ),
+                          onTap: () => _pickTime(
+                            context,
+                            ctrl.morningTime,
+                            ctrl.setMorningTime,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Motivación nocturna ────────────────────────────────────
+                _buildSection(
+                  icon: Icons.nightlight_round,
+                  color: Colors.deepPurple,
+                  title: 'Motivación nocturna',
+                  subtitle:
+                      'Te felicitamos si entrenaste, te animamos si no',
+                  child: Column(
+                    children: [
+                      SwitchListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: const Text('Activar motivación nocturna'),
+                        value: ctrl.eveningEnabled,
+                        activeThumbColor: Colors.deepPurple,
+                        onChanged: ctrl.setEveningEnabled,
+                      ),
+                      if (ctrl.eveningEnabled) ...[
+                        const Divider(height: 1),
+                        ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: const Text('Hora de envío'),
+                          trailing: _timePill(
+                            _formatTime(ctrl.eveningTime),
+                            Colors.deepPurple,
+                          ),
+                          onTap: () => _pickTime(
+                            context,
+                            ctrl.eveningTime,
+                            ctrl.setEveningTime,
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+
+                // ── Felicitación de cumpleaños ─────────────────────────────
+                _buildSection(
+                  icon: Icons.cake_rounded,
+                  color: Colors.pink,
+                  title: 'Felicitación de cumpleaños',
+                  subtitle:
+                      'Te mandamos un saludo especial en tu día',
+                  child: SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('Activar felicitación'),
+                    value: ctrl.birthdayEnabled,
+                    activeThumbColor: Colors.pink,
+                    onChanged: ctrl.setBirthdayEnabled,
+                  ),
+                ),
                 const SizedBox(height: 32),
+
                 Text(
                   'Las horas se basan en la zona horaria del servidor.\nAsegúrate de que coincidan con tu hora local.',
                   style: TextStyle(

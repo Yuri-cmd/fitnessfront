@@ -12,12 +12,13 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController = TextEditingController();
-  final _emailController = TextEditingController();
+  final _nameController     = TextEditingController();
+  final _emailController    = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmController = TextEditingController();
+  final _confirmController  = TextEditingController();
   bool _obscurePassword = true;
-  bool _obscureConfirm = true;
+  bool _obscureConfirm  = true;
+  DateTime? _birthDate;
 
   @override
   void dispose() {
@@ -28,11 +29,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
     super.dispose();
   }
 
+  Future<void> _pickBirthDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _birthDate ?? DateTime(now.year - 20),
+      firstDate: DateTime(1920),
+      lastDate: DateTime(now.year - 5),
+      helpText: 'Fecha de nacimiento',
+    );
+    if (picked != null) setState(() => _birthDate = picked);
+  }
+
   void _register() async {
-    final name = _nameController.text.trim();
-    final email = _emailController.text.trim();
+    final name     = _nameController.text.trim();
+    final email    = _emailController.text.trim();
     final password = _passwordController.text;
-    final confirm = _confirmController.text;
+    final confirm  = _confirmController.text;
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       _showError('Completa todos los campos.');
@@ -47,8 +60,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final ctrl = context.read<AuthController>();
-    final success = await ctrl.register(name, email, password);
+    final String? birthDateStr = _birthDate != null
+        ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
+        : null;
+
+    final ctrl    = context.read<AuthController>();
+    final success = await ctrl.register(name, email, password, birthDate: birthDateStr);
     if (success && mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     } else if (!success && mounted) {
@@ -70,7 +87,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final isLoading = context.watch<AuthController>().isLoading;
+    final isLoading  = context.watch<AuthController>().isLoading;
+    final scheme     = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -137,6 +155,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 20),
+              _label('FECHA DE NACIMIENTO'),
+              const SizedBox(height: 8),
+              GestureDetector(
+                onTap: _pickBirthDate,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  decoration: BoxDecoration(
+                    border: Border.all(color: scheme.outline.withValues(alpha: 0.4)),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(Icons.cake_outlined, size: 20,
+                          color: scheme.onSurfaceVariant),
+                      const SizedBox(width: 12),
+                      Text(
+                        _birthDate != null
+                            ? '${_birthDate!.day.toString().padLeft(2,'0')}/${_birthDate!.month.toString().padLeft(2,'0')}/${_birthDate!.year}'
+                            : 'Opcional — para el saludo de cumpleaños 🎂',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: _birthDate != null
+                              ? scheme.onSurface
+                              : scheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
               _label('CONTRASEÑA'),
               const SizedBox(height: 8),
               TextField(
@@ -197,7 +246,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   Text(
                     '¿Ya tienes cuenta? ',
                     style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      color: scheme.onSurfaceVariant,
                       fontSize: 13,
                     ),
                   ),
@@ -244,6 +293,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
         suffixIcon: suffix,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       );
 }

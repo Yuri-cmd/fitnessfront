@@ -15,6 +15,11 @@ class NotificationSettingsController with ChangeNotifier {
     const TimeOfDay(hour: 18, minute: 0),
   ];
   int _waterGoal = 8;
+  bool _morningEnabled = true;
+  TimeOfDay _morningTime = const TimeOfDay(hour: 7, minute: 0);
+  bool _eveningEnabled = true;
+  TimeOfDay _eveningTime = const TimeOfDay(hour: 21, minute: 0);
+  bool _birthdayEnabled = true;
   bool _isLoading = false;
   bool _isSaving = false;
 
@@ -23,6 +28,11 @@ class NotificationSettingsController with ChangeNotifier {
   bool get waterEnabled => _waterEnabled;
   List<TimeOfDay> get waterTimes => List.unmodifiable(_waterTimes);
   int get waterGoal => _waterGoal;
+  bool get morningEnabled => _morningEnabled;
+  TimeOfDay get morningTime => _morningTime;
+  bool get eveningEnabled => _eveningEnabled;
+  TimeOfDay get eveningTime => _eveningTime;
+  bool get birthdayEnabled => _birthdayEnabled;
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
 
@@ -40,6 +50,11 @@ class NotificationSettingsController with ChangeNotifier {
             .map((t) => _parseTime(t as String))
             .toList();
         _waterGoal = (data['water_goal_glasses'] as num).toInt();
+        _morningEnabled = data['morning_motivation_enabled'] as bool? ?? true;
+        _morningTime = _parseTime(data['morning_motivation_time'] as String? ?? '07:00');
+        _eveningEnabled = data['evening_motivation_enabled'] as bool? ?? true;
+        _eveningTime = _parseTime(data['evening_motivation_time'] as String? ?? '21:00');
+        _birthdayEnabled = data['birthday_notification_enabled'] as bool? ?? true;
       }
     } catch (e) {
       debugPrint('Error loading notification settings: $e');
@@ -58,6 +73,11 @@ class NotificationSettingsController with ChangeNotifier {
         'water_reminder_enabled': _waterEnabled,
         'water_reminder_times': _waterTimes.map(_formatTime).toList(),
         'water_goal_glasses': _waterGoal,
+        'morning_motivation_enabled': _morningEnabled,
+        'morning_motivation_time': _formatTime(_morningTime),
+        'evening_motivation_enabled': _eveningEnabled,
+        'evening_motivation_time': _formatTime(_eveningTime),
+        'birthday_notification_enabled': _birthdayEnabled,
       });
       if (response.statusCode == 200) {
         _isSaving = false;
@@ -72,42 +92,26 @@ class NotificationSettingsController with ChangeNotifier {
     return false;
   }
 
-  void setWorkoutEnabled(bool value) {
-    _workoutEnabled = value;
-    notifyListeners();
-  }
-
-  void setWorkoutTime(TimeOfDay time) {
-    _workoutTime = time;
-    notifyListeners();
-  }
-
-  void setWaterEnabled(bool value) {
-    _waterEnabled = value;
-    notifyListeners();
-  }
-
-  void setWaterTime(int index, TimeOfDay time) {
-    _waterTimes[index] = time;
-    notifyListeners();
-  }
-
-  void addWaterTime(TimeOfDay time) {
+  void setWorkoutEnabled(bool v) { _workoutEnabled = v; notifyListeners(); }
+  void setWorkoutTime(TimeOfDay t) { _workoutTime = t; notifyListeners(); }
+  void setWaterEnabled(bool v) { _waterEnabled = v; notifyListeners(); }
+  void setWaterTime(int i, TimeOfDay t) { _waterTimes[i] = t; notifyListeners(); }
+  void addWaterTime(TimeOfDay t) {
     if (_waterTimes.length >= 6) return;
-    _waterTimes.add(time);
+    _waterTimes.add(t);
     notifyListeners();
   }
-
-  void removeWaterTime(int index) {
+  void removeWaterTime(int i) {
     if (_waterTimes.length <= 1) return;
-    _waterTimes.removeAt(index);
+    _waterTimes.removeAt(i);
     notifyListeners();
   }
-
-  void setWaterGoal(int value) {
-    _waterGoal = value.clamp(1, 20);
-    notifyListeners();
-  }
+  void setWaterGoal(int v) { _waterGoal = v.clamp(1, 20); notifyListeners(); }
+  void setMorningEnabled(bool v) { _morningEnabled = v; notifyListeners(); }
+  void setMorningTime(TimeOfDay t) { _morningTime = t; notifyListeners(); }
+  void setEveningEnabled(bool v) { _eveningEnabled = v; notifyListeners(); }
+  void setEveningTime(TimeOfDay t) { _eveningTime = t; notifyListeners(); }
+  void setBirthdayEnabled(bool v) { _birthdayEnabled = v; notifyListeners(); }
 
   TimeOfDay _parseTime(String hhmm) {
     final parts = hhmm.split(':');
