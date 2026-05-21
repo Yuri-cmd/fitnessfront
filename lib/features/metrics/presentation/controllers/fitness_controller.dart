@@ -1,72 +1,67 @@
 import 'dart:math';
-import 'package:flutter/material.dart';
-import '../../data/services/metrics_service.dart';
-import '../../../auth/data/services/auth_service.dart';
-import '../../../../core/services/health_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/metrics/data/models/user_profile_model.dart';
+import 'package:fit_tracker_app/features/metrics/data/models/weight_log_model.dart';
+import 'package:fit_tracker_app/features/metrics/data/services/metrics_service.dart';
+import 'package:fit_tracker_app/features/auth/data/services/auth_service.dart';
+import 'package:fit_tracker_app/core/services/health_service.dart';
 
-class FitnessController with ChangeNotifier {
+class FitnessController extends GetxController {
   final MetricsService _metricsService;
   final AuthService _authService;
   final HealthService _healthService;
 
-  double? _height;
-  double? _weight;
-  double? _goalWeight;
-  double? _bmi;
-  DateTime? _birthDate;
-  String? _gender;
-  String? _activityLevel;
-  List<dynamic> _weightLogs = [];
-  bool _isLoading = false;
-
   FitnessController(this._metricsService, this._authService, this._healthService);
 
-  double? get height => _height;
-  double? get weight => _weight;
-  double? get goalWeight => _goalWeight;
-  double? get bmi => _bmi;
-  DateTime? get birthDate => _birthDate;
-  String? get gender => _gender;
-  String? get activityLevel => _activityLevel;
-  List<dynamic> get weightLogs => _weightLogs;
-  bool get isLoading => _isLoading;
-
-  void calculateBmi() {
-    if (_height != null && _weight != null && _height! > 0) {
-      _bmi = _weight! / pow(_height! / 100, 2);
-      notifyListeners();
-    }
-  }
+  final height = Rx<double?>(null);
+  final weight = Rx<double?>(null);
+  final goalWeight = Rx<double?>(null);
+  final bmi = Rx<double?>(null);
+  final birthDate = Rx<DateTime?>(null);
+  final gender = Rx<String?>(null);
+  final activityLevel = Rx<String?>(null);
+  final weightLogs = <WeightLog>[].obs;
+  final isLoading = false.obs;
 
   String get bmiCategory {
-    if (_bmi == null) return 'N/A';
-    if (_bmi! < 18.5) return 'Bajo peso';
-    if (_bmi! < 25) return 'Normal';
-    if (_bmi! < 30) return 'Sobrepeso';
+    final b = bmi.value;
+    if (b == null) return 'N/A';
+    if (b < 18.5) return 'Bajo peso';
+    if (b < 25) return 'Normal';
+    if (b < 30) return 'Sobrepeso';
     return 'Obesidad';
   }
 
   double get weightToLose {
-    if (_bmi == null || _bmi! <= 24.9) return 0;
-    if (_height == null || _weight == null) return 0;
-    final idealWeight = 24.9 * pow(_height! / 100, 2);
-    return _weight! - idealWeight;
+    final b = bmi.value;
+    final h = height.value;
+    final w = weight.value;
+    if (b == null || b <= 24.9 || h == null || w == null) return 0;
+    return w - 24.9 * pow(h / 100, 2);
   }
 
-  Future<void> updateProfileMetrics(double height, double weight) async {
-    _isLoading = true;
-    notifyListeners();
-    try {
-      await _authService.updateProfile({
-        'height': height,
-        'current_weight': weight,
-      });
-      await loadProfile();
-    } catch (e) {
-      debugPrint(e.toString());
+  @override
+  void onInit() {
+    super.onInit();
+    loadProfile();
+    loadWeightLogs();
+  }
+
+  void _calculateBmi() {
+    final h = height.value;
+    final w = weight.value;
+    if (h != null && w != null && h > 0) {
+      bmi.value = w / pow(h / 100, 2);
     }
-    _isLoading = false;
-    notifyListeners();
+  }
+
+  Future<void> updateProfileMetrics(double h, double w) async {
+    isLoading.value = true;
+    try {
+      await _authService.updateProfile({'height': h, 'current_weight': w});
+      await loadProfile();
+    } catch (_) {}
+    isLoading.value = false;
   }
 
   Future<bool> updateFullProfile({
@@ -77,8 +72,7 @@ class FitnessController with ChangeNotifier {
     String? gender,
     String? activityLevel,
   }) async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final payload = <String, dynamic>{};
       if (height != null) payload['height'] = height;
@@ -94,66 +88,53 @@ class FitnessController with ChangeNotifier {
       final resp = await _authService.updateProfile(payload);
       if (resp.statusCode == 200) {
         await loadProfile();
-        _isLoading = false;
-        notifyListeners();
+        isLoading.value = false;
         return true;
       }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-    _isLoading = false;
-    notifyListeners();
+    } catch (_) {}
+    isLoading.value = false;
     return false;
   }
 
   Future<void> loadProfile() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final response = await _authService.getProfile();
       if (response.statusCode == 200) {
-        final data = response.data['user'] ?? response.data;
-        _height = double.tryParse(data['height'].toString());
-        _weight = double.tryParse(data['current_weight'].toString());
-        _goalWeight = double.tryParse(data['goal_weight'].toString());
-        _gender = data['gender'] as String?;
-        _activityLevel = data['activity_level'] as String?;
-        final bd = data['birth_date'];
-        _birthDate = bd != null && bd != 'null' ? DateTime.tryParse(bd.toString()) : null;
-        calculateBmi();
+        final profile =
+            UserProfile.fromJson(response.data as Map<String, dynamic>);
+        height.value = profile.height;
+        weight.value = profile.currentWeight;
+        goalWeight.value = profile.goalWeight;
+        gender.value = profile.gender;
+        activityLevel.value = profile.activityLevel;
+        birthDate.value = profile.birthDate;
+        _calculateBmi();
       }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
-    _isLoading = false;
-    notifyListeners();
+    } catch (_) {}
+    isLoading.value = false;
   }
 
-  Future<void> addWeight(double weight) async {
+  Future<void> addWeight(double w) async {
     try {
-      await _metricsService.addWeightLog(weight);
-      _weight = weight;
-      calculateBmi();
+      await _metricsService.addWeightLog(w);
+      weight.value = w;
+      _calculateBmi();
       await loadWeightLogs();
-      _healthService.saveWeight(weight);
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+      _healthService.saveWeight(w);
+    } catch (_) {}
   }
 
-  Future<double?> getWeightFromHealth() async {
-    return _healthService.getLatestWeight();
-  }
+  Future<double?> getWeightFromHealth() => _healthService.getLatestWeight();
 
   Future<void> loadWeightLogs() async {
     try {
       final response = await _metricsService.getWeightLogs();
       if (response.statusCode == 200) {
-        _weightLogs = response.data;
-        notifyListeners();
+        weightLogs.value = (response.data as List<dynamic>)
+            .map((e) => WeightLog.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
-    } catch (e) {
-      debugPrint(e.toString());
-    }
+    } catch (_) {}
   }
 }

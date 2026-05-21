@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/neon_button.dart';
-import '../controllers/auth_controller.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/widgets/neon_button.dart';
+import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'privacy_screen.dart';
 import 'register_screen.dart';
 import 'support_screen.dart';
-import '../../../../core/services/version_service.dart';
+import 'package:fit_tracker_app/core/services/version_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -77,52 +77,49 @@ class _LoginScreenState extends State<LoginScreen>
 
   void _tryAutoLaunchBiometric() {
     if (!mounted || _didTriggerBiometric) return;
-    final auth = context.read<AuthController>();
-    if (auth.isBiometricEnabled && auth.isBiometricAvailable) {
+    final auth = Get.find<AuthController>();
+    if (auth.isBiometricEnabled.value && auth.isBiometricAvailable.value) {
       _didTriggerBiometric = true;
       _loginWithBiometrics();
     }
   }
 
   Future<void> _loginWithBiometrics() async {
-    final success = await context.read<AuthController>().loginWithBiometrics();
+    final success = await Get.find<AuthController>().loginWithBiometrics();
     if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('No se pudo verificar la identidad. Ingresa con tu contraseña.'),
-          backgroundColor: AppColors.error.withValues(alpha: 0.9),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text(
+            'No se pudo verificar la identidad. Ingresa con tu contraseña.'),
+        backgroundColor: AppColors.error.withValues(alpha: 0.9),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ));
     }
   }
 
-  void _login() async {
-    final auth = context.read<AuthController>();
+  Future<void> _login() async {
+    final auth = Get.find<AuthController>();
     final success = await auth.login(
       _emailController.text,
       _passwordController.text,
     );
     if (!success && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: const Text('Credenciales incorrectas. Intenta de nuevo.'),
-          backgroundColor: AppColors.error.withValues(alpha: 0.9),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          margin: const EdgeInsets.all(16),
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        content: const Text('Credenciales incorrectas. Intenta de nuevo.'),
+        backgroundColor: AppColors.error.withValues(alpha: 0.9),
+        behavior: SnackBarBehavior.floating,
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        margin: const EdgeInsets.all(16),
+      ));
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
-    final isLoading = auth.isLoading;
-    final showBiometric = auth.isBiometricAvailable && auth.isBiometricEnabled;
+    final auth = Get.find<AuthController>();
     final size = MediaQuery.sizeOf(context);
     final padding = MediaQuery.paddingOf(context);
     final isDark = Theme.of(context).brightness == Brightness.dark;
@@ -152,13 +149,14 @@ class _LoginScreenState extends State<LoginScreen>
                 padding: const EdgeInsets.symmetric(horizontal: 28),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: size.height - padding.top - padding.bottom,
+                    minHeight:
+                        size.height - padding.top - padding.bottom,
                   ),
                   child: Column(
                     children: [
                       SizedBox(height: size.height * 0.07),
 
-                      // ── Hero ──────────────────────────────────────────
+                      // ── Hero ──────────────────────────────────────
                       SlideTransition(
                         position: _slideHero,
                         child: FadeTransition(
@@ -170,14 +168,17 @@ class _LoginScreenState extends State<LoginScreen>
                                 height: 100,
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
-                                  color: AppColors.primary.withValues(alpha: 0.1),
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.1),
                                   border: Border.all(
-                                    color: AppColors.primary.withValues(alpha: 0.28),
+                                    color: AppColors.primary
+                                        .withValues(alpha: 0.28),
                                     width: 1.5,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: AppColors.primary.withValues(alpha: 0.22),
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.22),
                                       blurRadius: 36,
                                       spreadRadius: 6,
                                     ),
@@ -200,11 +201,13 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 8),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
                                 children: [
                                   _dash(isDark),
                                   const Padding(
-                                    padding: EdgeInsets.symmetric(horizontal: 10),
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: 10),
                                     child: Text(
                                       'DOMINA TU ENTRENAMIENTO',
                                       style: TextStyle(
@@ -224,21 +227,25 @@ class _LoginScreenState extends State<LoginScreen>
 
                       SizedBox(height: size.height * 0.07),
 
-                      // ── Form ──────────────────────────────────────────
+                      // ── Form ──────────────────────────────────────
                       SlideTransition(
                         position: _slideForm,
                         child: FadeTransition(
                           opacity: _fadeForm,
                           child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            crossAxisAlignment:
+                                CrossAxisAlignment.stretch,
                             children: [
                               _label('CORREO ELECTRÓNICO'),
                               const SizedBox(height: 8),
                               TextField(
                                 controller: _emailController,
-                                keyboardType: TextInputType.emailAddress,
+                                keyboardType:
+                                    TextInputType.emailAddress,
                                 textInputAction: TextInputAction.next,
-                                autofillHints: const [AutofillHints.email],
+                                autofillHints: const [
+                                  AutofillHints.email
+                                ],
                                 decoration: _inputDeco(
                                   hint: 'ejemplo@correo.com',
                                   icon: Icons.alternate_email_rounded,
@@ -251,7 +258,9 @@ class _LoginScreenState extends State<LoginScreen>
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 textInputAction: TextInputAction.done,
-                                autofillHints: const [AutofillHints.password],
+                                autofillHints: const [
+                                  AutofillHints.password
+                                ],
                                 onSubmitted: (_) => _login(),
                                 decoration: _inputDeco(
                                   hint: '••••••••',
@@ -260,81 +269,99 @@ class _LoginScreenState extends State<LoginScreen>
                                     icon: Icon(
                                       _obscurePassword
                                           ? Icons.visibility_outlined
-                                          : Icons.visibility_off_outlined,
+                                          : Icons
+                                              .visibility_off_outlined,
                                       size: 20,
                                     ),
-                                    onPressed: () => setState(
-                                      () => _obscurePassword = !_obscurePassword,
-                                    ),
+                                    onPressed: () => setState(() =>
+                                        _obscurePassword =
+                                            !_obscurePassword),
                                   ),
                                 ),
                               ),
                               const SizedBox(height: 36),
-                              NeonButton(
-                                label: 'INGRESAR',
-                                onTap: _login,
-                                isLoading: isLoading,
-                                colors: const [
-                                  AppColors.primary,
-                                  Color(0xFF8BB52E),
-                                ],
-                              ),
-                              if (showBiometric) ...[
-                                const SizedBox(height: 16),
-                                OutlinedButton.icon(
-                                  onPressed: isLoading ? null : _loginWithBiometrics,
-                                  icon: const Icon(Icons.fingerprint_rounded, size: 22),
-                                  label: const Text(
-                                    'INGRESAR CON BIOMÉTRICO',
-                                    style: TextStyle(
-                                      fontWeight: FontWeight.bold,
-                                      letterSpacing: 1.0,
-                                      fontSize: 13,
-                                    ),
-                                  ),
-                                  style: OutlinedButton.styleFrom(
-                                    foregroundColor: AppColors.primary,
-                                    side: const BorderSide(color: AppColors.primary, width: 1.5),
-                                    minimumSize: const Size(double.infinity, 55),
-                                    shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(12),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                              const SizedBox(height: 28),
-                              Row(
-                                children: [
-                                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
-                                  Padding(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                                    child: Text(
-                                      'o',
+                              Obx(() => NeonButton(
+                                    label: 'INGRESAR',
+                                    onTap: _login,
+                                    isLoading: auth.isLoading.value,
+                                    colors: const [
+                                      AppColors.primary,
+                                      Color(0xFF8BB52E),
+                                    ],
+                                  )),
+                              Obx(() {
+                                final show = auth.isBiometricAvailable
+                                        .value &&
+                                    auth.isBiometricEnabled.value;
+                                if (!show) return const SizedBox.shrink();
+                                return Padding(
+                                  padding: const EdgeInsets.only(top: 16),
+                                  child: OutlinedButton.icon(
+                                    onPressed: auth.isLoading.value
+                                        ? null
+                                        : _loginWithBiometrics,
+                                    icon: const Icon(
+                                        Icons.fingerprint_rounded,
+                                        size: 22),
+                                    label: const Text(
+                                      'INGRESAR CON BIOMÉTRICO',
                                       style: TextStyle(
-                                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                        fontWeight: FontWeight.bold,
+                                        letterSpacing: 1.0,
                                         fontSize: 13,
                                       ),
                                     ),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: AppColors.primary,
+                                      side: const BorderSide(
+                                          color: AppColors.primary,
+                                          width: 1.5),
+                                      minimumSize:
+                                          const Size(double.infinity, 55),
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius:
+                                            BorderRadius.circular(12),
+                                      ),
+                                    ),
                                   ),
-                                  Expanded(child: Divider(color: Theme.of(context).dividerColor)),
+                                );
+                              }),
+                              const SizedBox(height: 28),
+                              Row(
+                                children: [
+                                  Expanded(
+                                      child: Divider(
+                                          color: Theme.of(context)
+                                              .dividerColor)),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 12),
+                                    child: Text('o',
+                                        style: TextStyle(
+                                            color: Theme.of(context)
+                                                .colorScheme
+                                                .onSurfaceVariant,
+                                            fontSize: 13)),
+                                  ),
+                                  Expanded(
+                                      child: Divider(
+                                          color: Theme.of(context)
+                                              .dividerColor)),
                                 ],
                               ),
                               const SizedBox(height: 16),
                               OutlinedButton(
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (_) => const RegisterScreen(),
-                                  ),
-                                ),
+                                onPressed: () => Get.to(
+                                    () => const RegisterScreen()),
                                 style: OutlinedButton.styleFrom(
                                   side: const BorderSide(
-                                    color: AppColors.primary,
-                                    width: 1.5,
-                                  ),
-                                  minimumSize: const Size(double.infinity, 55),
+                                      color: AppColors.primary,
+                                      width: 1.5),
+                                  minimumSize:
+                                      const Size(double.infinity, 55),
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius:
+                                        BorderRadius.circular(12),
                                   ),
                                 ),
                                 child: const Text(
@@ -349,24 +376,23 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 20),
                               Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                    MainAxisAlignment.center,
                                 children: [
                                   TextButton(
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const PrivacyScreen()),
-                                    ),
+                                    onPressed: () => Get.to(
+                                        () => const PrivacyScreen()),
                                     child: const Text('Privacidad',
                                         style: TextStyle(fontSize: 12)),
                                   ),
                                   Text('·',
                                       style: TextStyle(
-                                          color: Theme.of(context).colorScheme.onSurfaceVariant)),
+                                          color: Theme.of(context)
+                                              .colorScheme
+                                              .onSurfaceVariant)),
                                   TextButton(
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const SupportScreen()),
-                                    ),
+                                    onPressed: () => Get.to(
+                                        () => const SupportScreen()),
                                     child: const Text('Soporte',
                                         style: TextStyle(fontSize: 12)),
                                   ),
@@ -401,16 +427,14 @@ class _LoginScreenState extends State<LoginScreen>
         ),
       );
 
-  InputDecoration _inputDeco({
-    required String hint,
-    required IconData icon,
-    Widget? suffix,
-  }) =>
+  InputDecoration _inputDeco(
+          {required String hint, required IconData icon, Widget? suffix}) =>
       InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),
         suffixIcon: suffix,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       );
 
   Widget _glow(double size, Color color) => Container(
@@ -419,15 +443,15 @@ class _LoginScreenState extends State<LoginScreen>
         decoration: BoxDecoration(
           shape: BoxShape.circle,
           color: color,
-          boxShadow: [
-            BoxShadow(color: color, blurRadius: 80, spreadRadius: 40),
-          ],
+          boxShadow: [BoxShadow(color: color, blurRadius: 80, spreadRadius: 40)],
         ),
       );
 
   Widget _dash(bool isDark) => Container(
         width: 28,
         height: 1,
-        color: isDark ? Colors.white24 : AppColors.textBody.withValues(alpha: 0.25),
+        color: isDark
+            ? Colors.white24
+            : AppColors.textBody.withValues(alpha: 0.25),
       );
 }

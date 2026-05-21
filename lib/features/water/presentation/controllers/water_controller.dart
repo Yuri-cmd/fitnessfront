@@ -1,70 +1,62 @@
-import 'package:flutter/material.dart';
-import '../../data/services/water_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/water/data/services/water_service.dart';
 
-class WaterController with ChangeNotifier {
+class WaterController extends GetxController {
   final WaterService _waterService;
 
   WaterController(this._waterService);
 
-  int _glasses = 0;
-  int _goalGlasses = 8;
-  bool _isLoading = false;
+  final glasses = 0.obs;
+  final goalGlasses = 8.obs;
+  final isLoading = false.obs;
 
-  int get glasses => _glasses;
-  int get goalGlasses => _goalGlasses;
-  bool get isLoading => _isLoading;
-  bool get goalReached => _glasses >= _goalGlasses;
-  double get progress => (_glasses / _goalGlasses).clamp(0.0, 1.0);
+  bool get goalReached => glasses.value >= goalGlasses.value;
+  double get progress => (glasses.value / goalGlasses.value).clamp(0.0, 1.0);
   String get statusText => goalReached
       ? '¡Meta alcanzada! 🎉'
-      : '${_goalGlasses - _glasses} vasos más para tu meta';
+      : '${goalGlasses.value - glasses.value} vasos más para tu meta';
+
+  @override
+  void onInit() {
+    super.onInit();
+    loadTodayWater();
+  }
 
   Future<void> loadTodayWater() async {
     try {
       final response = await _waterService.getTodayWater();
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        _glasses = (data['glasses'] as num).toInt();
-        _goalGlasses = (data['goal_glasses'] as num).toInt();
-        notifyListeners();
+        glasses.value = (data['glasses'] as num).toInt();
+        goalGlasses.value = (data['goal_glasses'] as num).toInt();
       }
-    } catch (e) {
-      debugPrint('Error loading water: $e');
-    }
+    } catch (_) {}
   }
 
   Future<void> addGlass() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final response = await _waterService.logGlasses(1);
       if (response.statusCode == 201) {
         final data = response.data as Map<String, dynamic>;
-        _glasses = (data['glasses'] as num).toInt();
-        _goalGlasses = (data['goal_glasses'] as num).toInt();
+        glasses.value = (data['glasses'] as num).toInt();
+        goalGlasses.value = (data['goal_glasses'] as num).toInt();
       }
-    } catch (e) {
-      debugPrint('Error logging water: $e');
-    }
-    _isLoading = false;
-    notifyListeners();
+    } catch (_) {}
+    isLoading.value = false;
   }
 
   Future<void> removeGlass() async {
-    if (_glasses <= 0) return;
-    _isLoading = true;
-    notifyListeners();
+    if (glasses.value <= 0) return;
+    isLoading.value = true;
     try {
       final response = await _waterService.removeLastGlass();
       if (response.statusCode == 200) {
         final data = response.data as Map<String, dynamic>;
-        _glasses = (data['glasses'] as num).toInt();
-        _goalGlasses = (data['goal_glasses'] as num).toInt();
+        glasses.value = (data['glasses'] as num).toInt();
+        goalGlasses.value = (data['goal_glasses'] as num).toInt();
       }
-    } catch (e) {
-      debugPrint('Error removing water: $e');
-    }
-    _isLoading = false;
-    notifyListeners();
+    } catch (_) {}
+    isLoading.value = false;
   }
 }

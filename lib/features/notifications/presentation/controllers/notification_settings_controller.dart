@@ -1,123 +1,103 @@
 import 'package:flutter/material.dart';
-import '../../data/services/notification_settings_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/notifications/data/models/notification_settings_model.dart';
+import 'package:fit_tracker_app/features/notifications/data/services/notification_settings_service.dart';
 
-class NotificationSettingsController with ChangeNotifier {
+class NotificationSettingsController extends GetxController {
   final NotificationSettingsService _service;
-
   NotificationSettingsController(this._service);
 
-  bool _workoutEnabled = true;
-  TimeOfDay _workoutTime = const TimeOfDay(hour: 20, minute: 0);
-  bool _waterEnabled = true;
-  List<TimeOfDay> _waterTimes = [
+  final workoutEnabled = true.obs;
+  final workoutTime = const TimeOfDay(hour: 20, minute: 0).obs;
+  final waterEnabled = true.obs;
+  final waterTimes = <TimeOfDay>[
     const TimeOfDay(hour: 9, minute: 0),
     const TimeOfDay(hour: 13, minute: 0),
     const TimeOfDay(hour: 18, minute: 0),
-  ];
-  int _waterGoal = 8;
-  bool _morningEnabled = true;
-  TimeOfDay _morningTime = const TimeOfDay(hour: 7, minute: 0);
-  bool _eveningEnabled = true;
-  TimeOfDay _eveningTime = const TimeOfDay(hour: 21, minute: 0);
-  bool _birthdayEnabled = true;
-  bool _isLoading = false;
-  bool _isSaving = false;
+  ].obs;
+  final waterGoal = 8.obs;
+  final morningEnabled = true.obs;
+  final morningTime = const TimeOfDay(hour: 7, minute: 0).obs;
+  final eveningEnabled = true.obs;
+  final eveningTime = const TimeOfDay(hour: 21, minute: 0).obs;
+  final birthdayEnabled = true.obs;
+  final isLoading = false.obs;
+  final isSaving = false.obs;
 
-  bool get workoutEnabled => _workoutEnabled;
-  TimeOfDay get workoutTime => _workoutTime;
-  bool get waterEnabled => _waterEnabled;
-  List<TimeOfDay> get waterTimes => List.unmodifiable(_waterTimes);
-  int get waterGoal => _waterGoal;
-  bool get morningEnabled => _morningEnabled;
-  TimeOfDay get morningTime => _morningTime;
-  bool get eveningEnabled => _eveningEnabled;
-  TimeOfDay get eveningTime => _eveningTime;
-  bool get birthdayEnabled => _birthdayEnabled;
-  bool get isLoading => _isLoading;
-  bool get isSaving => _isSaving;
+  @override
+  void onInit() {
+    super.onInit();
+    load();
+  }
 
   Future<void> load() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final response = await _service.getSettings();
       if (response.statusCode == 200) {
-        final data = response.data as Map<String, dynamic>;
-        _workoutEnabled = data['workout_reminder_enabled'] as bool;
-        _workoutTime = _parseTime(data['workout_reminder_time'] as String);
-        _waterEnabled = data['water_reminder_enabled'] as bool;
-        _waterTimes = (data['water_reminder_times'] as List)
-            .map((t) => _parseTime(t as String))
-            .toList();
-        _waterGoal = (data['water_goal_glasses'] as num).toInt();
-        _morningEnabled = data['morning_motivation_enabled'] as bool? ?? true;
-        _morningTime = _parseTime(data['morning_motivation_time'] as String? ?? '07:00');
-        _eveningEnabled = data['evening_motivation_enabled'] as bool? ?? true;
-        _eveningTime = _parseTime(data['evening_motivation_time'] as String? ?? '21:00');
-        _birthdayEnabled = data['birthday_notification_enabled'] as bool? ?? true;
+        final s = NotificationSettings.fromJson(
+            response.data as Map<String, dynamic>);
+        workoutEnabled.value = s.workoutEnabled;
+        workoutTime.value = _parseTime(s.workoutTime);
+        waterEnabled.value = s.waterEnabled;
+        waterTimes.value = s.waterTimes.map(_parseTime).toList();
+        waterGoal.value = s.waterGoalGlasses;
+        morningEnabled.value = s.morningEnabled;
+        morningTime.value = _parseTime(s.morningTime);
+        eveningEnabled.value = s.eveningEnabled;
+        eveningTime.value = _parseTime(s.eveningTime);
+        birthdayEnabled.value = s.birthdayEnabled;
       }
     } catch (e) {
       debugPrint('Error loading notification settings: $e');
     }
-    _isLoading = false;
-    notifyListeners();
+    isLoading.value = false;
   }
 
   Future<bool> save() async {
-    _isSaving = true;
-    notifyListeners();
+    isSaving.value = true;
     try {
       final response = await _service.updateSettings({
-        'workout_reminder_enabled': _workoutEnabled,
-        'workout_reminder_time': _formatTime(_workoutTime),
-        'water_reminder_enabled': _waterEnabled,
-        'water_reminder_times': _waterTimes.map(_formatTime).toList(),
-        'water_goal_glasses': _waterGoal,
-        'morning_motivation_enabled': _morningEnabled,
-        'morning_motivation_time': _formatTime(_morningTime),
-        'evening_motivation_enabled': _eveningEnabled,
-        'evening_motivation_time': _formatTime(_eveningTime),
-        'birthday_notification_enabled': _birthdayEnabled,
+        'workout_reminder_enabled': workoutEnabled.value,
+        'workout_reminder_time': formatTime(workoutTime.value),
+        'water_reminder_enabled': waterEnabled.value,
+        'water_reminder_times': waterTimes.map(formatTime).toList(),
+        'water_goal_glasses': waterGoal.value,
+        'morning_motivation_enabled': morningEnabled.value,
+        'morning_motivation_time': formatTime(morningTime.value),
+        'evening_motivation_enabled': eveningEnabled.value,
+        'evening_motivation_time': formatTime(eveningTime.value),
+        'birthday_notification_enabled': birthdayEnabled.value,
       });
-      if (response.statusCode == 200) {
-        _isSaving = false;
-        notifyListeners();
-        return true;
-      }
+      isSaving.value = false;
+      return response.statusCode == 200;
     } catch (e) {
       debugPrint('Error saving notification settings: $e');
     }
-    _isSaving = false;
-    notifyListeners();
+    isSaving.value = false;
     return false;
   }
 
-  void setWorkoutEnabled(bool v) { _workoutEnabled = v; notifyListeners(); }
-  void setWorkoutTime(TimeOfDay t) { _workoutTime = t; notifyListeners(); }
-  void setWaterEnabled(bool v) { _waterEnabled = v; notifyListeners(); }
-  void setWaterTime(int i, TimeOfDay t) { _waterTimes[i] = t; notifyListeners(); }
-  void addWaterTime(TimeOfDay t) {
-    if (_waterTimes.length >= 6) return;
-    _waterTimes.add(t);
-    notifyListeners();
-  }
-  void removeWaterTime(int i) {
-    if (_waterTimes.length <= 1) return;
-    _waterTimes.removeAt(i);
-    notifyListeners();
-  }
-  void setWaterGoal(int v) { _waterGoal = v.clamp(1, 20); notifyListeners(); }
-  void setMorningEnabled(bool v) { _morningEnabled = v; notifyListeners(); }
-  void setMorningTime(TimeOfDay t) { _morningTime = t; notifyListeners(); }
-  void setEveningEnabled(bool v) { _eveningEnabled = v; notifyListeners(); }
-  void setEveningTime(TimeOfDay t) { _eveningTime = t; notifyListeners(); }
-  void setBirthdayEnabled(bool v) { _birthdayEnabled = v; notifyListeners(); }
+  void setWorkoutEnabled(bool v) => workoutEnabled.value = v;
+  void setWorkoutTime(TimeOfDay t) => workoutTime.value = t;
+  void setWaterEnabled(bool v) => waterEnabled.value = v;
+  void setWaterTime(int i, TimeOfDay t) => waterTimes[i] = t;
+  void addWaterTime(TimeOfDay t) { if (waterTimes.length < 6) waterTimes.add(t); }
+  void removeWaterTime(int i) { if (waterTimes.length > 1) waterTimes.removeAt(i); }
+  void setWaterGoal(int v) => waterGoal.value = v.clamp(1, 20);
+  void setMorningEnabled(bool v) => morningEnabled.value = v;
+  void setMorningTime(TimeOfDay t) => morningTime.value = t;
+  void setEveningEnabled(bool v) => eveningEnabled.value = v;
+  void setEveningTime(TimeOfDay t) => eveningTime.value = t;
+  void setBirthdayEnabled(bool v) => birthdayEnabled.value = v;
 
-  TimeOfDay _parseTime(String hhmm) {
+  static TimeOfDay parseTime(String hhmm) {
     final parts = hhmm.split(':');
     return TimeOfDay(hour: int.parse(parts[0]), minute: int.parse(parts[1]));
   }
 
-  String _formatTime(TimeOfDay t) =>
+  static String formatTime(TimeOfDay t) =>
       '${t.hour.toString().padLeft(2, '0')}:${t.minute.toString().padLeft(2, '0')}';
+
+  TimeOfDay _parseTime(String hhmm) => parseTime(hhmm);
 }

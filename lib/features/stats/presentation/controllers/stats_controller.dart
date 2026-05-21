@@ -1,83 +1,92 @@
-import 'package:flutter/material.dart';
-import '../../data/services/stats_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/stats/data/models/stats_models.dart';
+import 'package:fit_tracker_app/features/stats/data/services/stats_service.dart';
 
-class StatsController with ChangeNotifier {
+class StatsController extends GetxController {
   final StatsService _statsService;
 
   StatsController(this._statsService);
 
-  List<dynamic> _weightHistory = [];
-  List<dynamic> _volumeByMuscle = [];
-  List<dynamic> _activityHeatmap = [];
-  List<dynamic> _personalRecords = [];
-  List<dynamic> _achievements = [];
-  bool _isLoading = false;
+  final weightHistory = <WeightHistory>[].obs;
+  final volumeByMuscle = <VolumeByMuscle>[].obs;
+  final activityHeatmap = <ActivityDay>[].obs;
+  final personalRecords = <PersonalRecord>[].obs;
+  final achievements = <Achievement>[].obs;
+  final isLoading = false.obs;
 
-  List<dynamic> get weightHistory => _weightHistory;
-  List<dynamic> get volumeByMuscle => _volumeByMuscle;
-  List<dynamic> get activityHeatmap => _activityHeatmap;
-  List<dynamic> get personalRecords => _personalRecords;
-  List<dynamic> get achievements => _achievements;
-  bool get isLoading => _isLoading;
+  @override
+  void onInit() {
+    super.onInit();
+    loadAll();
+  }
 
   Future<void> loadAll() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     await Future.wait([
-      _loadWeightHistory(),
-      _loadVolumeByMuscle(),
-      _loadActivityHeatmap(),
-      _loadPersonalRecords(),
+      _load(() => _statsService.getWeightHistory(), weightHistory,
+          WeightHistory.fromJson),
+      _load(() => _statsService.getVolumeByMuscle(), volumeByMuscle,
+          VolumeByMuscle.fromJson),
+      _load(() => _statsService.getActivityHeatmap(), activityHeatmap,
+          ActivityDay.fromJson),
+      _load(() => _statsService.getPersonalRecords(), personalRecords,
+          PersonalRecord.fromJson),
     ]);
-    _isLoading = false;
-    notifyListeners();
+    isLoading.value = false;
   }
 
   Future<void> loadAchievements() async {
     try {
-      final response = await _statsService.getAchievements();
-      if (response.statusCode == 200) {
-        _achievements = response.data;
-        notifyListeners();
+      final r = await _statsService.getAchievements();
+      if (r.statusCode == 200) {
+        achievements.value = (r.data as List<dynamic>)
+            .map((e) => Achievement.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
-    } catch (e) {
-      debugPrint('Error loading achievements: $e');
-    }
+    } catch (_) {}
   }
 
-  Future<void> _loadWeightHistory() async {
+  Future<void> _load<T>(
+    Future<dynamic> Function() call,
+    RxList<T> list,
+    T Function(Map<String, dynamic>) fromJson,
+  ) async {
     try {
-      final response = await _statsService.getWeightHistory();
-      if (response.statusCode == 200) _weightHistory = response.data;
-    } catch (e) {
-      debugPrint('Error loading weight history: $e');
-    }
+      final r = await call();
+      if (r.statusCode == 200) {
+        list.value = (r.data as List<dynamic>)
+            .map((e) => fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
   }
 
-  Future<void> _loadVolumeByMuscle() async {
-    try {
-      final response = await _statsService.getVolumeByMuscle();
-      if (response.statusCode == 200) _volumeByMuscle = response.data;
-    } catch (e) {
-      debugPrint('Error loading volume by muscle: $e');
+  static String resolveIcon(String? raw) {
+    if (raw == null || raw.isEmpty) return '🏆';
+    if (!raw.startsWith('fa-')) return raw;
+    const map = {
+      'fa-trophy': '🏆', 'fa-medal': '🥇', 'fa-star': '⭐',
+      'fa-fire': '🔥', 'fa-bolt': '⚡', 'fa-dumbbell': '🏋️',
+      'fa-heart': '❤️', 'fa-crown': '👑', 'fa-check': '✅',
+      'fa-flag': '🚩', 'fa-running': '🏃', 'fa-bicycle': '🚴',
+      'fa-swimmer': '🏊', 'fa-walking': '🚶', 'fa-weight': '⚖️',
+      'fa-apple-alt': '🍎', 'fa-bed': '🛏️', 'fa-brain': '🧠',
+      'fa-chart-line': '📈', 'fa-calendar-check': '📅',
+    };
+    for (final e in map.entries) {
+      if (raw.contains(e.key)) return e.value;
     }
+    return '🏆';
   }
 
-  Future<void> _loadActivityHeatmap() async {
+  static String formatDate(String raw) {
     try {
-      final response = await _statsService.getActivityHeatmap();
-      if (response.statusCode == 200) _activityHeatmap = response.data;
-    } catch (e) {
-      debugPrint('Error loading activity heatmap: $e');
-    }
-  }
-
-  Future<void> _loadPersonalRecords() async {
-    try {
-      final response = await _statsService.getPersonalRecords();
-      if (response.statusCode == 200) _personalRecords = response.data;
-    } catch (e) {
-      debugPrint('Error loading personal records: $e');
+      final d = DateTime.parse(raw);
+      const months = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun',
+          'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+      return '${d.day} ${months[d.month]} ${d.year}';
+    } catch (_) {
+      return raw;
     }
   }
 }

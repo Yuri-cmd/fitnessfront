@@ -1,17 +1,12 @@
-import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
-import '../network/dio_client.dart';
-import '../theme/theme_controller.dart';
-import '../services/health_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/network/dio_client.dart';
+import 'package:fit_tracker_app/core/services/health_service.dart';
+import 'package:fit_tracker_app/core/theme/theme_controller.dart';
 
 class CoreBinding {
-  static List<SingleChildWidget> providers(ThemeController themeController) => [
-    ChangeNotifierProvider<ThemeController>.value(value: themeController),
-    Provider<DioClient>(
-      create: (_) => DioClient(),
-    ),
-    Provider<HealthService>(
-      create: (_) => HealthService(),
-    ),
-  ];
+  static void init(ThemeController themeController, DioClient dioClient) {
+    Get.put<ThemeController>(themeController, permanent: true);
+    Get.put<DioClient>(dioClient, permanent: true);
+    Get.put<HealthService>(HealthService(), permanent: true);
+  }
 }

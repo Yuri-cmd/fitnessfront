@@ -1,33 +1,30 @@
-import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
-import '../../../core/network/dio_client.dart';
-import '../../../core/services/health_service.dart';
-import '../data/services/metrics_service.dart';
-import '../data/services/measurement_service.dart';
-import '../presentation/controllers/fitness_controller.dart';
-import '../presentation/controllers/measurement_controller.dart';
-import '../../auth/data/services/auth_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/network/dio_client.dart';
+import 'package:fit_tracker_app/core/services/health_service.dart';
+import 'package:fit_tracker_app/features/metrics/data/services/metrics_service.dart';
+import 'package:fit_tracker_app/features/metrics/data/services/measurement_service.dart';
+import 'package:fit_tracker_app/features/metrics/presentation/controllers/fitness_controller.dart';
+import 'package:fit_tracker_app/features/metrics/presentation/controllers/measurement_controller.dart';
+import 'package:fit_tracker_app/features/auth/data/services/auth_service.dart';
 
 class MetricsBinding {
-  static List<SingleChildWidget> providers = [
-    ProxyProvider<DioClient, MetricsService>(
-      update: (context, dioClient, previous) => MetricsService(dioClient),
-    ),
-    ChangeNotifierProxyProvider3<MetricsService, AuthService, HealthService, FitnessController>(
-      create: (context) => FitnessController(
-        context.read<MetricsService>(),
-        context.read<AuthService>(),
-        context.read<HealthService>(),
+  static void init() {
+    final dioClient = Get.find<DioClient>();
+
+    Get.put<MetricsService>(MetricsService(dioClient), permanent: true);
+    Get.put<MeasurementService>(MeasurementService(dioClient), permanent: true);
+
+    Get.put<FitnessController>(
+      FitnessController(
+        Get.find<MetricsService>(),
+        Get.find<AuthService>(),
+        Get.find<HealthService>(),
       ),
-      update: (context, metricsService, authService, healthService, previous) =>
-          previous ?? FitnessController(metricsService, authService, healthService),
-    ),
-    ProxyProvider<DioClient, MeasurementService>(
-      update: (_, dioClient, __) => MeasurementService(dioClient),
-    ),
-    ChangeNotifierProxyProvider<MeasurementService, MeasurementController>(
-      create: (context) => MeasurementController(context.read<MeasurementService>()),
-      update: (_, service, controller) => controller ?? MeasurementController(service),
-    ),
-  ];
+      permanent: true,
+    );
+    Get.put<MeasurementController>(
+      MeasurementController(Get.find<MeasurementService>()),
+      permanent: true,
+    );
+  }
 }

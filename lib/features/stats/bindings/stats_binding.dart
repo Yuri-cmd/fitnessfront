@@ -1,44 +1,39 @@
-import 'package:provider/provider.dart';
-import 'package:provider/single_child_widget.dart';
-import '../../../core/network/dio_client.dart';
-import '../data/services/stats_service.dart';
-import '../presentation/controllers/stats_controller.dart';
-import '../../water/data/services/water_service.dart';
-import '../../water/presentation/controllers/water_controller.dart';
-import '../../streak/data/services/streak_service.dart';
-import '../../streak/presentation/controllers/streak_controller.dart';
-import '../../notifications/data/services/notification_settings_service.dart';
-import '../../notifications/presentation/controllers/notification_settings_controller.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/network/dio_client.dart';
+import 'package:fit_tracker_app/features/stats/data/services/stats_service.dart';
+import 'package:fit_tracker_app/features/stats/presentation/controllers/stats_controller.dart';
+import 'package:fit_tracker_app/features/water/data/services/water_service.dart';
+import 'package:fit_tracker_app/features/streak/data/services/streak_service.dart';
+import 'package:fit_tracker_app/features/notifications/data/services/notification_settings_service.dart';
+import 'package:fit_tracker_app/features/notifications/bindings/notifications_binding.dart';
 
 class StatsBinding {
-  static List<SingleChildWidget> providers = [
-    ProxyProvider<DioClient, StatsService>(
-      update: (_, dioClient, __) => StatsService(dioClient),
-    ),
-    ChangeNotifierProxyProvider<StatsService, StatsController>(
-      create: (context) => StatsController(context.read<StatsService>()),
-      update: (_, service, controller) => controller ?? StatsController(service),
-    ),
-    ProxyProvider<DioClient, WaterService>(
-      update: (_, dioClient, __) => WaterService(dioClient),
-    ),
-    ChangeNotifierProxyProvider<WaterService, WaterController>(
-      create: (context) => WaterController(context.read<WaterService>()),
-      update: (_, service, controller) => controller ?? WaterController(service),
-    ),
-    ProxyProvider<DioClient, StreakService>(
-      update: (_, dioClient, __) => StreakService(dioClient),
-    ),
-    ChangeNotifierProxyProvider<StreakService, StreakController>(
-      create: (context) => StreakController(context.read<StreakService>()),
-      update: (_, service, controller) => controller ?? StreakController(service),
-    ),
-    ProxyProvider<DioClient, NotificationSettingsService>(
-      update: (_, dioClient, __) => NotificationSettingsService(dioClient),
-    ),
-    ChangeNotifierProxyProvider<NotificationSettingsService, NotificationSettingsController>(
-      create: (context) => NotificationSettingsController(context.read<NotificationSettingsService>()),
-      update: (_, service, controller) => controller ?? NotificationSettingsController(service),
-    ),
-  ];
+  static void init() {
+    final dioClient = Get.find<DioClient>();
+
+    if (!Get.isRegistered<StatsService>()) {
+      Get.put<StatsService>(StatsService(dioClient), permanent: true);
+    }
+    if (!Get.isRegistered<WaterService>()) {
+      Get.put<WaterService>(WaterService(dioClient), permanent: true);
+    }
+    if (!Get.isRegistered<StreakService>()) {
+      Get.put<StreakService>(StreakService(dioClient), permanent: true);
+    }
+    if (!Get.isRegistered<NotificationSettingsService>()) {
+      Get.put<NotificationSettingsService>(
+        NotificationSettingsService(dioClient),
+        permanent: true,
+      );
+    }
+
+    if (!Get.isRegistered<StatsController>()) {
+      Get.put<StatsController>(
+        StatsController(Get.find<StatsService>()),
+        permanent: true,
+      );
+    }
+
+    NotificationsBinding.init();
+  }
 }

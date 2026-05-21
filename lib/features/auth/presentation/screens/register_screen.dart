@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../core/widgets/neon_button.dart';
-import '../controllers/auth_controller.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/widgets/neon_button.dart';
+import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
@@ -12,12 +12,12 @@ class RegisterScreen extends StatefulWidget {
 }
 
 class _RegisterScreenState extends State<RegisterScreen> {
-  final _nameController     = TextEditingController();
-  final _emailController    = TextEditingController();
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
-  final _confirmController  = TextEditingController();
+  final _confirmController = TextEditingController();
   bool _obscurePassword = true;
-  bool _obscureConfirm  = true;
+  bool _obscureConfirm = true;
   DateTime? _birthDate;
 
   @override
@@ -41,11 +41,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
     if (picked != null) setState(() => _birthDate = picked);
   }
 
-  void _register() async {
-    final name     = _nameController.text.trim();
-    final email    = _emailController.text.trim();
+  Future<void> _register() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
     final password = _passwordController.text;
-    final confirm  = _confirmController.text;
+    final confirm = _confirmController.text;
 
     if (name.isEmpty || email.isEmpty || password.isEmpty) {
       _showError('Completa todos los campos.');
@@ -60,35 +60,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
       return;
     }
 
-    final String? birthDateStr = _birthDate != null
+    final birthDateStr = _birthDate != null
         ? '${_birthDate!.year}-${_birthDate!.month.toString().padLeft(2, '0')}-${_birthDate!.day.toString().padLeft(2, '0')}'
         : null;
 
-    final ctrl    = context.read<AuthController>();
-    final success = await ctrl.register(name, email, password, birthDate: birthDateStr);
+    final auth = Get.find<AuthController>();
+    final success =
+        await auth.register(name, email, password, birthDate: birthDateStr);
     if (success && mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);
     } else if (!success && mounted) {
-      _showError(ctrl.registerError ?? 'No se pudo crear la cuenta.');
+      _showError(
+          auth.registerError.value ?? 'No se pudo crear la cuenta.');
     }
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(msg),
-        backgroundColor: AppColors.error.withValues(alpha: 0.9),
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        margin: const EdgeInsets.all(16),
-      ),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text(msg),
+      backgroundColor: AppColors.error.withValues(alpha: 0.9),
+      behavior: SnackBarBehavior.floating,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      margin: const EdgeInsets.all(16),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    final isLoading  = context.watch<AuthController>().isLoading;
-    final scheme     = Theme.of(context).colorScheme;
+    final auth = Get.find<AuthController>();
+    final scheme = Theme.of(context).colorScheme;
 
     return GestureDetector(
       onTap: () => FocusScope.of(context).unfocus(),
@@ -96,7 +96,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         appBar: AppBar(
           leading: IconButton(
             icon: const Icon(Icons.arrow_back_ios_new_rounded),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Get.back(),
           ),
           title: const Text('CREAR CUENTA'),
         ),
@@ -114,9 +114,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     shape: BoxShape.circle,
                     color: AppColors.primary.withValues(alpha: 0.1),
                     border: Border.all(
-                      color: AppColors.primary.withValues(alpha: 0.28),
-                      width: 1.5,
-                    ),
+                        color: AppColors.primary.withValues(alpha: 0.28),
+                        width: 1.5),
                     boxShadow: [
                       BoxShadow(
                         color: AppColors.primary.withValues(alpha: 0.18),
@@ -125,11 +124,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.person_add_rounded,
-                    size: 34,
-                    color: AppColors.primary,
-                  ),
+                  child: const Icon(Icons.person_add_rounded,
+                      size: 34, color: AppColors.primary),
                 ),
               ),
               const SizedBox(height: 28),
@@ -139,7 +135,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 controller: _nameController,
                 textCapitalization: TextCapitalization.words,
                 textInputAction: TextInputAction.next,
-                decoration: _inputDeco(hint: 'Tu nombre', icon: Icons.badge_outlined),
+                decoration:
+                    _inputDeco(hint: 'Tu nombre', icon: Icons.badge_outlined),
               ),
               const SizedBox(height: 20),
               _label('CORREO ELECTRÓNICO'),
@@ -150,9 +147,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 textInputAction: TextInputAction.next,
                 autofillHints: const [AutofillHints.email],
                 decoration: _inputDeco(
-                  hint: 'ejemplo@correo.com',
-                  icon: Icons.alternate_email_rounded,
-                ),
+                    hint: 'ejemplo@correo.com',
+                    icon: Icons.alternate_email_rounded),
               ),
               const SizedBox(height: 20),
               _label('FECHA DE NACIMIENTO'),
@@ -160,19 +156,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
               GestureDetector(
                 onTap: _pickBirthDate,
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 16),
                   decoration: BoxDecoration(
-                    border: Border.all(color: scheme.outline.withValues(alpha: 0.4)),
+                    border: Border.all(
+                        color: scheme.outline.withValues(alpha: 0.4)),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
                     children: [
-                      Icon(Icons.cake_outlined, size: 20,
-                          color: scheme.onSurfaceVariant),
+                      Icon(Icons.cake_outlined,
+                          size: 20, color: scheme.onSurfaceVariant),
                       const SizedBox(width: 12),
                       Text(
                         _birthDate != null
-                            ? '${_birthDate!.day.toString().padLeft(2,'0')}/${_birthDate!.month.toString().padLeft(2,'0')}/${_birthDate!.year}'
+                            ? '${_birthDate!.day.toString().padLeft(2, '0')}/${_birthDate!.month.toString().padLeft(2, '0')}/${_birthDate!.year}'
                             : 'Opcional — para el saludo de cumpleaños 🎂',
                         style: TextStyle(
                           fontSize: 14,
@@ -233,33 +231,26 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
               ),
               const SizedBox(height: 36),
-              NeonButton(
-                label: 'REGISTRARME',
-                onTap: _register,
-                isLoading: isLoading,
-                colors: const [AppColors.primary, Color(0xFF8BB52E)],
-              ),
+              Obx(() => NeonButton(
+                    label: 'REGISTRARME',
+                    onTap: _register,
+                    isLoading: auth.isLoading.value,
+                    colors: const [AppColors.primary, Color(0xFF8BB52E)],
+                  )),
               const SizedBox(height: 20),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    '¿Ya tienes cuenta? ',
-                    style: TextStyle(
-                      color: scheme.onSurfaceVariant,
-                      fontSize: 13,
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: const Text(
-                      'Inicia sesión',
+                  Text('¿Ya tienes cuenta? ',
                       style: TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
+                          color: scheme.onSurfaceVariant, fontSize: 13)),
+                  GestureDetector(
+                    onTap: () => Get.back(),
+                    child: const Text('Inicia sesión',
+                        style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13)),
                   ),
                 ],
               ),
@@ -284,11 +275,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
         ),
       );
 
-  InputDecoration _inputDeco({
-    required String hint,
-    required IconData icon,
-    Widget? suffix,
-  }) =>
+  InputDecoration _inputDeco(
+          {required String hint, required IconData icon, Widget? suffix}) =>
       InputDecoration(
         hintText: hint,
         prefixIcon: Icon(icon, size: 20),

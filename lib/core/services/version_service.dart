@@ -3,8 +3,8 @@ import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../constants/app_constants.dart';
-import '../theme/app_colors.dart';
+import 'package:fit_tracker_app/core/constants/app_constants.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
 class VersionService {
   static bool _checked = false;
@@ -30,10 +30,10 @@ class VersionService {
       if (data['up_to_date'] == true) return;
 
       final current = info.version;
-      final latest = data['latest_version'] as String;
-      final minimum = data['minimum_version'] as String;
-      final storeUrl = data['store_url'] as String;
-      final notes = data['release_notes'] as String? ?? '';
+      final latest = (data['latest_version'] ?? '') as String;
+      final minimum = (data['minimum_version'] ?? '') as String;
+      final storeUrl = (data['store_url'] ?? '') as String;
+      final notes = (data['release_notes'] ?? '') as String;
 
       final isForce = _compare(current, minimum) < 0;
       final hasUpdate = _compare(current, latest) < 0;

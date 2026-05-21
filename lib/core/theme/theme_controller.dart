@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-class ThemeController with ChangeNotifier {
+class ThemeController extends GetxController {
   static const _key = 'dark_mode';
-  ThemeMode _mode = ThemeMode.system;
+  final _mode = ThemeMode.system.obs;
 
-  ThemeMode get mode => _mode;
-  bool get isDark => _mode == ThemeMode.dark ||
-      (_mode == ThemeMode.system &&
+  ThemeMode get mode => _mode.value;
+  bool get isDark =>
+      _mode.value == ThemeMode.dark ||
+      (_mode.value == ThemeMode.system &&
           WidgetsBinding.instance.platformDispatcher.platformBrightness ==
               Brightness.dark);
 
@@ -15,17 +17,16 @@ class ThemeController with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     final saved = prefs.getString(_key);
     if (saved == 'dark') {
-      _mode = ThemeMode.dark;
+      _mode.value = ThemeMode.dark;
     } else if (saved == 'light') {
-      _mode = ThemeMode.light;
+      _mode.value = ThemeMode.light;
     } else {
-      _mode = ThemeMode.system;
+      _mode.value = ThemeMode.system;
     }
   }
 
   Future<void> toggle() async {
-    _mode = isDark ? ThemeMode.light : ThemeMode.dark;
-    notifyListeners();
+    _mode.value = isDark ? ThemeMode.light : ThemeMode.dark;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_key, isDark ? 'dark' : 'light');
   }

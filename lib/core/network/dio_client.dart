@@ -1,8 +1,8 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../constants/app_constants.dart';
-import '../services/auth_events.dart';
+import 'package:fit_tracker_app/core/constants/app_constants.dart';
+import 'package:fit_tracker_app/core/services/auth_events.dart';
 
 class DioClient {
   late final Dio dio;

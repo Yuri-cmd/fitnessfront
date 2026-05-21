@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
+import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'core/bindings/core_binding.dart';
+import 'core/network/dio_client.dart';
 import 'core/theme/theme_controller.dart';
-import 'features/auth/bindings/auth_binding.dart';
+import 'features/auth/data/services/auth_service.dart';
+import 'features/auth/presentation/controllers/auth_controller.dart';
 import 'features/metrics/bindings/metrics_binding.dart';
 import 'features/workout/bindings/workout_binding.dart';
 import 'features/stats/bindings/stats_binding.dart';
+import 'features/water/bindings/water_binding.dart';
+import 'features/streak/bindings/streak_binding.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/presentation/controllers/auth_controller.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/main_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -24,7 +27,6 @@ void main() async {
   await Firebase.initializeApp();
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // iOS: mostrar notificaciones aunque la app esté en primer plano
   await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
     alert: true,
     badge: true,
@@ -33,21 +35,27 @@ void main() async {
 
   await initializeDateFormatting('es_ES', null);
 
+  // ── Core dependencies ──
   final themeController = ThemeController();
   await themeController.init();
 
-  runApp(
-    MultiProvider(
-      providers: [
-        ...CoreBinding.providers(themeController),
-        ...AuthBinding.providers,
-        ...MetricsBinding.providers,
-        ...WorkoutBinding.providers,
-        ...StatsBinding.providers,
-      ],
-      child: const FitTrackerApp(),
-    ),
-  );
+  final dioClient = DioClient();
+
+  // ── Register all bindings with GetX ──
+  CoreBinding.init(themeController, dioClient);
+
+  final authService = AuthService(dioClient);
+  Get.put<AuthService>(authService, permanent: true);
+  Get.put<AuthController>(AuthController(authService), permanent: true);
+
+  // Feature bindings (all use Get.find<DioClient>() internally)
+  MetricsBinding.init();
+  WorkoutBinding.init();
+  StatsBinding.init();
+  WaterBinding.init();
+  StreakBinding.init();
+
+  runApp(const FitTrackerApp());
 }
 
 class FitTrackerApp extends StatelessWidget {
@@ -55,25 +63,26 @@ class FitTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final themeMode = context.watch<ThemeController>().mode;
-    return MaterialApp(
-      title: 'Power Stack',
-      debugShowCheckedModeBanner: false,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: themeMode,
-      home: Consumer<AuthController>(
-        builder: (context, auth, _) {
-          if (!auth.isInitialized) {
+    return Obx(() {
+      final themeMode = Get.find<ThemeController>().mode;
+      return GetMaterialApp(
+        title: 'Power Stack',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: themeMode,
+        home: Obx(() {
+          final auth = Get.find<AuthController>();
+          if (!auth.isInitialized.value) {
             return const Scaffold(
               body: Center(child: CircularProgressIndicator()),
             );
           }
-          return auth.isAuthenticated
+          return auth.isAuthenticated.value
               ? const MainScreen()
               : const LoginScreen();
-        },
-      ),
-    );
+        }),
+      );
+    });
   }
 }

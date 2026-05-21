@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
 class PrivacyScreen extends StatelessWidget {
   const PrivacyScreen({super.key});

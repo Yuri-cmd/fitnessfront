@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
 class NeonButton extends StatelessWidget {
   final String label;

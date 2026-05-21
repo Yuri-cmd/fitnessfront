@@ -3,85 +3,78 @@ import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:get/get.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../../../../core/constants/app_constants.dart';
-import '../../../../core/services/auth_events.dart';
-import '../../data/services/auth_service.dart';
-import '../../data/services/biometric_service.dart';
+import 'package:fit_tracker_app/core/constants/app_constants.dart';
+import 'package:fit_tracker_app/core/services/auth_events.dart';
+import 'package:fit_tracker_app/features/auth/data/models/auth_response.dart';
+import 'package:fit_tracker_app/features/auth/data/services/auth_service.dart';
+import 'package:fit_tracker_app/features/auth/data/services/biometric_service.dart';
 
-class AuthController with ChangeNotifier {
+class AuthController extends GetxController {
   final AuthService _authService;
   final BiometricService _biometricService = BiometricService();
-  bool _isAuthenticated = false;
-  bool _isLoading = false;
-  String? _token;
-  String? _registerError;
-  String? _userName;
-  bool _isBiometricEnabled = false;
-  bool _isBiometricAvailable = false;
+
+  final isAuthenticated = false.obs;
+  final isLoading = false.obs;
+  final isInitialized = false.obs;
+  final registerError = Rx<String?>(null);
+  final userName = 'Atleta'.obs;
+  final isBiometricEnabled = false.obs;
+  final isBiometricAvailable = false.obs;
 
   late final StreamSubscription<void> _unauthorizedSub;
-  bool _isInitialized = false;
-  bool get isInitialized => _isInitialized;
 
-  AuthController(this._authService) {
+  AuthController(this._authService);
+
+  @override
+  void onInit() {
+    super.onInit();
     _unauthorizedSub = AuthEvents.onUnauthorized.listen((_) => _forceLogout());
     checkAuth();
   }
 
-  void _forceLogout() async {
+  @override
+  void onClose() {
+    _unauthorizedSub.cancel();
+    super.onClose();
+  }
+
+  Future<void> _forceLogout() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.authTokenKey);
     await prefs.remove(AppConstants.userNameKey);
-    _isAuthenticated = false;
-    _token = null;
-    _userName = null;
-    notifyListeners();
+    isAuthenticated.value = false;
+    userName.value = 'Atleta';
   }
-
-  @override
-  void dispose() {
-    _unauthorizedSub.cancel();
-    super.dispose();
-  }
-
-  bool get isAuthenticated => _isAuthenticated;
-  bool get isLoading => _isLoading;
-  String? get registerError => _registerError;
-  String get userName => _userName ?? 'Atleta';
-  bool get isBiometricEnabled => _isBiometricEnabled;
-  bool get isBiometricAvailable => _isBiometricAvailable;
 
   Future<void> checkAuth() async {
     final prefs = await SharedPreferences.getInstance();
-    _token = prefs.getString(AppConstants.authTokenKey);
-    _userName = prefs.getString(AppConstants.userNameKey);
-    _isBiometricEnabled = prefs.getBool(AppConstants.biometricEnabledKey) ?? false;
-    _isBiometricAvailable = await _biometricService.isAvailable();
-    // Si hay token Y biométrico activo → mostrar LoginScreen para que Face ID dispare
-    // Si hay token pero sin biométrico → entrar directamente
-    final hasBiometric = _isBiometricEnabled && _isBiometricAvailable;
-    _isAuthenticated = _token != null && !hasBiometric;
-    _isInitialized = true;
-    if (_token != null) debugPrint('🔑 AUTH TOKEN (stored): $_token');
-    notifyListeners();
+    final token = prefs.getString(AppConstants.authTokenKey);
+    final name = prefs.getString(AppConstants.userNameKey);
+    isBiometricEnabled.value =
+        prefs.getBool(AppConstants.biometricEnabledKey) ?? false;
+    isBiometricAvailable.value = await _biometricService.isAvailable();
+    if (name != null) userName.value = name;
+    final hasBiometric =
+        isBiometricEnabled.value && isBiometricAvailable.value;
+    isAuthenticated.value = token != null && !hasBiometric;
+    isInitialized.value = true;
+    if (token != null) debugPrint('🔑 AUTH TOKEN (stored): $token');
   }
 
   Future<void> setBiometricEnabled(bool enabled) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(AppConstants.biometricEnabledKey, enabled);
-    _isBiometricEnabled = enabled;
-    notifyListeners();
+    isBiometricEnabled.value = enabled;
   }
 
   Future<bool> loginWithBiometrics() async {
-    if (!_isBiometricAvailable || !_isBiometricEnabled) return false;
-    if (_token == null) return false;
+    if (!isBiometricAvailable.value || !isBiometricEnabled.value) return false;
+    final prefs = await SharedPreferences.getInstance();
+    if (prefs.getString(AppConstants.authTokenKey) == null) return false;
     final authenticated = await _biometricService.authenticate();
-    if (authenticated) {
-      _isAuthenticated = true;
-      notifyListeners();
-    }
+    if (authenticated) isAuthenticated.value = true;
     return authenticated;
   }
 
@@ -91,9 +84,8 @@ class AuthController with ChangeNotifier {
     String password, {
     String? birthDate,
   }) async {
-    _isLoading = true;
-    _registerError = null;
-    notifyListeners();
+    isLoading.value = true;
+    registerError.value = null;
     try {
       final payload = <String, dynamic>{
         'name': name,
@@ -104,61 +96,59 @@ class AuthController with ChangeNotifier {
       final response = await _authService.register(payload);
       final code = response.statusCode ?? 0;
       if (code >= 200 && code < 300) {
-        _token = response.data['token'];
-        _userName = response.data['name'];
+        final auth = AuthResponse.fromJson(response.data as Map<String, dynamic>);
+        final token = auth.token;
+        final loadedName = auth.name;
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(AppConstants.authTokenKey, _token!);
-        if (_userName != null) await prefs.setString(AppConstants.userNameKey, _userName!);
-        _isAuthenticated = true;
-        _isLoading = false;
-        notifyListeners();
+        await prefs.setString(AppConstants.authTokenKey, token);
+        await prefs.setString(AppConstants.userNameKey, loadedName);
+        userName.value = loadedName;
+        isAuthenticated.value = true;
+        isLoading.value = false;
         return true;
       }
     } on DioException catch (e) {
       if (e.response?.statusCode == 422) {
-        final errors = e.response?.data?['errors'] as Map?;
-        if (errors?['email'] != null) {
-          _registerError = 'Este correo ya está registrado.';
-        } else {
-          _registerError = 'Datos inválidos. Revisa los campos.';
-        }
+        final errors =
+            (e.response?.data as Map<String, dynamic>?)?['errors'] as Map?;
+        registerError.value = errors?['email'] != null
+            ? 'Este correo ya está registrado.'
+            : 'Datos inválidos. Revisa los campos.';
       } else {
-        _registerError = 'Error de conexión. Intenta de nuevo.';
+        registerError.value = 'Error de conexión. Intenta de nuevo.';
       }
       debugPrint('Register error: $e');
     } catch (e) {
-      _registerError = 'Error inesperado. Intenta de nuevo.';
+      registerError.value = 'Error inesperado. Intenta de nuevo.';
       debugPrint('Register error: $e');
     }
-    _isLoading = false;
-    notifyListeners();
+    isLoading.value = false;
     return false;
   }
 
   Future<bool> login(String email, String password) async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final response = await _authService.login(email, password);
       if (response.statusCode == 200) {
-        _token = response.data['token'];
-        _userName = response.data['name'];
-        debugPrint('🔑 AUTH TOKEN: $_token');
+        final auth = AuthResponse.fromJson(response.data as Map<String, dynamic>);
+        final token = auth.token;
+        final loadedName = auth.name;
+        debugPrint('🔑 AUTH TOKEN: $token');
         final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(AppConstants.authTokenKey, _token!);
-        if (_userName != null) await prefs.setString(AppConstants.userNameKey, _userName!);
-        _isBiometricAvailable = await _biometricService.isAvailable();
-        _isAuthenticated = true;
-        _isLoading = false;
-        notifyListeners();
+        await prefs.setString(AppConstants.authTokenKey, token);
+        await prefs.setString(AppConstants.userNameKey, loadedName);
+        userName.value = loadedName;
+        isBiometricAvailable.value = await _biometricService.isAvailable();
+        isAuthenticated.value = true;
+        isLoading.value = false;
         _registerFcmToken();
         return true;
       }
     } catch (e) {
       debugPrint(e.toString());
     }
-    _isLoading = false;
-    notifyListeners();
+    isLoading.value = false;
     return false;
   }
 
@@ -167,32 +157,26 @@ class AuthController with ChangeNotifier {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.authTokenKey);
     await prefs.remove(AppConstants.userNameKey);
-    _isAuthenticated = false;
-    _token = null;
-    _userName = null;
-    notifyListeners();
+    isAuthenticated.value = false;
+    userName.value = 'Atleta';
   }
 
   Future<bool> deleteAccount() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       await _authService.deleteAccount();
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(AppConstants.authTokenKey);
-      _isAuthenticated = false;
-      _token = null;
-      _isLoading = false;
-      notifyListeners();
+      isAuthenticated.value = false;
+      isLoading.value = false;
       return true;
     } catch (e) {
       debugPrint(e.toString());
     }
-    _isLoading = false;
-    notifyListeners();
+    isLoading.value = false;
     return false;
   }
-  
+
   Future<void> _registerFcmToken() async {
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
@@ -201,9 +185,8 @@ class AuthController with ChangeNotifier {
       final token = await FirebaseMessaging.instance.getToken();
       debugPrint('📱 FCM TOKEN: $token');
       if (token != null) await _authService.saveFcmToken(token);
-      FirebaseMessaging.instance.onTokenRefresh.listen(
-        (t) => _authService.saveFcmToken(t),
-      );
+      FirebaseMessaging.instance.onTokenRefresh
+          .listen((t) => _authService.saveFcmToken(t));
     } catch (e) {
       debugPrint('FCM register error: $e');
     }

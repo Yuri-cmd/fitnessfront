@@ -1,33 +1,42 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/workout/data/models/goal_model.dart';
 import 'package:fit_tracker_app/features/workout/data/services/goals_service.dart';
 
-class GoalsController with ChangeNotifier {
+class GoalsController extends GetxController {
   final GoalsService _goalsService;
   GoalsController(this._goalsService);
 
-  List<dynamic> _goals = [];
-  bool _isLoading = false;
+  final goals = <Goal>[].obs;
+  final isLoading = false.obs;
 
-  List<dynamic> get goals => _goals;
-  bool get isLoading => _isLoading;
+  @override
+  void onInit() {
+    super.onInit();
+    loadGoals();
+  }
 
   Future<void> loadGoals() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final response = await _goalsService.getGoals();
       if (response.statusCode == 200) {
-        _goals = response.data;
+        goals.value = (response.data as List<dynamic>)
+            .map((e) => Goal.fromJson(e as Map<String, dynamic>))
+            .toList();
       }
     } catch (e) {
-      debugPrint("Error loading goals: $e");
+      debugPrint('Error loading goals: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      isLoading.value = false;
     }
   }
 
-  Future<bool> createGoal(String type, double targetValue, {DateTime? deadline}) async {
+  Future<bool> createGoal(
+    String type,
+    double targetValue, {
+    DateTime? deadline,
+  }) async {
     try {
       final response = await _goalsService.createGoal({
         'type': type,
@@ -39,7 +48,7 @@ class GoalsController with ChangeNotifier {
         return true;
       }
     } catch (e) {
-      debugPrint("Error creating goal: $e");
+      debugPrint('Error creating goal: $e');
     }
     return false;
   }
@@ -47,10 +56,9 @@ class GoalsController with ChangeNotifier {
   Future<void> deleteGoal(int id) async {
     try {
       await _goalsService.deleteGoal(id);
-      _goals.removeWhere((g) => g['id'] == id);
-      notifyListeners();
+      goals.removeWhere((g) => g.id == id);
     } catch (e) {
-      debugPrint("Error deleting goal: $e");
+      debugPrint('Error deleting goal: $e');
     }
   }
 }

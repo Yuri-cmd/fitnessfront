@@ -1,50 +1,50 @@
-import 'package:flutter/material.dart';
-import '../../data/services/measurement_service.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/metrics/data/models/measurement_model.dart';
+import 'package:fit_tracker_app/features/metrics/data/services/measurement_service.dart';
 
-class MeasurementController with ChangeNotifier {
+class MeasurementController extends GetxController {
   final MeasurementService _service;
+
   MeasurementController(this._service);
 
-  List<dynamic> _measurements = [];
-  bool _isLoading = false;
+  final measurements = <Measurement>[].obs;
+  final isLoading = false.obs;
 
-  List<dynamic> get measurements => _measurements;
-  bool get isLoading => _isLoading;
+  @override
+  void onInit() {
+    super.onInit();
+    load();
+  }
 
   Future<void> load() async {
-    _isLoading = true;
-    notifyListeners();
+    isLoading.value = true;
     try {
       final r = await _service.getAll();
-      if (r.statusCode == 200) _measurements = r.data;
-    } catch (e) {
-      debugPrint('Error loading measurements: $e');
-    }
-    _isLoading = false;
-    notifyListeners();
+      if (r.statusCode == 200) {
+        measurements.value = (r.data as List<dynamic>)
+            .map((e) => Measurement.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {}
+    isLoading.value = false;
   }
 
   Future<bool> add(Map<String, dynamic> data) async {
     try {
       final r = await _service.store(data);
       if (r.statusCode == 201) {
-        _measurements.insert(0, r.data);
-        notifyListeners();
+        measurements.insert(
+            0, Measurement.fromJson(r.data as Map<String, dynamic>));
         return true;
       }
-    } catch (e) {
-      debugPrint('Error saving measurement: $e');
-    }
+    } catch (_) {}
     return false;
   }
 
   Future<void> remove(int id) async {
     try {
       await _service.delete(id);
-      _measurements.removeWhere((m) => m['id'] == id);
-      notifyListeners();
-    } catch (e) {
-      debugPrint('Error deleting measurement: $e');
-    }
+      measurements.removeWhere((m) => m.id == id);
+    } catch (_) {}
   }
 }

@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../../features/metrics/presentation/controllers/fitness_controller.dart';
-import '../../../../features/auth/presentation/controllers/auth_controller.dart';
-import '../../../../features/workout/presentation/controllers/workout_controller.dart';
-import '../../../../features/water/presentation/controllers/water_controller.dart';
-import '../../../../core/theme/theme_controller.dart';
-import '../../../../core/services/version_service.dart';
-import '../../../../features/streak/presentation/controllers/streak_controller.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/features/metrics/presentation/controllers/fitness_controller.dart';
+import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:fit_tracker_app/features/workout/presentation/controllers/workout_controller.dart';
+import 'package:fit_tracker_app/features/water/presentation/controllers/water_controller.dart';
+import 'package:fit_tracker_app/features/water/presentation/widgets/water_section.dart';
+import 'package:fit_tracker_app/features/streak/presentation/controllers/streak_controller.dart';
+import 'package:fit_tracker_app/features/streak/presentation/widgets/streak_pills.dart';
+import 'package:fit_tracker_app/core/theme/theme_controller.dart';
+import 'package:fit_tracker_app/core/services/version_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -22,43 +24,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
-      context.read<FitnessController>().loadProfile();
-      context.read<FitnessController>().loadWeightLogs();
-      context.read<WorkoutController>().loadWeeklyProgress();
-      context.read<WaterController>().loadTodayWater();
-      context.read<StreakController>().load();
+      Get.find<WorkoutController>().loadWeeklyProgress();
       VersionService.checkAndPrompt(context);
       _offerBiometricIfNeeded();
     });
   }
 
   void _offerBiometricIfNeeded() {
-    final auth = context.read<AuthController>();
-    if (!auth.isBiometricAvailable || auth.isBiometricEnabled) return;
-    showDialog<void>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Text('Acceso biométrico'),
-        content: const Text(
-          '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Ahora no'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              auth.setBiometricEnabled(true);
-            },
-            child: const Text('Activar',
-                style: TextStyle(color: AppColors.primary)),
-          ),
-        ],
+    final auth = Get.find<AuthController>();
+    if (!auth.isBiometricAvailable.value || auth.isBiometricEnabled.value) return;
+    Get.dialog(AlertDialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      title: const Text('Acceso biométrico'),
+      content: const Text(
+        '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
       ),
-    );
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('Ahora no')),
+        TextButton(
+          onPressed: () {
+            Get.back();
+            auth.setBiometricEnabled(true);
+          },
+          child: const Text('Activar',
+              style: TextStyle(color: AppColors.primary)),
+        ),
+      ],
+    ));
   }
 
   String get _greeting {
@@ -70,10 +62,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final fitness = context.watch<FitnessController>();
-    final workout = context.watch<WorkoutController>();
-    final water = context.watch<WaterController>();
-    final streak = context.watch<StreakController>();
     final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
@@ -81,23 +69,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
         title: const Text('POWER STACK'),
         actions: [
           IconButton(
-            icon: Icon(
-              context.watch<ThemeController>().isDark
+            icon: Obx(() => Icon(
+              Get.find<ThemeController>().isDark
                   ? Icons.light_mode_outlined
                   : Icons.dark_mode_outlined,
               color: AppColors.primary,
-            ),
-            onPressed: () => context.read<ThemeController>().toggle(),
+            )),
+            onPressed: () => Get.find<ThemeController>().toggle(),
           ),
           IconButton(
             icon: const Icon(Icons.person_outline, color: AppColors.primary),
-            onPressed: () => _showUpdateProfileDialog(context, fitness),
+            onPressed: () => _showUpdateProfileDialog(context),
           ),
           PopupMenuButton<String>(
             icon: const Icon(Icons.more_vert, color: AppColors.primary),
             onSelected: (value) {
               if (value == 'logout') {
-                context.read<AuthController>().logout();
+                Get.find<AuthController>().logout();
               } else if (value == 'delete') {
                 _showDeleteAccountDialog(context);
               }
@@ -124,47 +112,50 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: fitness.isLoading
-          ? const _DashboardSkeleton()
-          : RefreshIndicator(
-              onRefresh: () async {
-                await fitness.loadProfile();
-                await fitness.loadWeightLogs();
-                await workout.loadWeeklyProgress();
-                await water.loadTodayWater();
-                await streak.load();
-              },
-              child: SingleChildScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _buildHeroBanner(fitness, streak, isDark),
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildQuickStats(fitness, workout),
-                          const SizedBox(height: 20),
-                          _buildWaterSection(water),
-                          const SizedBox(height: 20),
-                          _buildWeeklySummary(workout),
-                          const SizedBox(height: 24),
-                        ],
-                      ),
-                    ),
-                  ],
+      body: Obx(() {
+        final fitness = Get.find<FitnessController>();
+        if (fitness.isLoading.value) return const _DashboardSkeleton();
+        return RefreshIndicator(
+          onRefresh: () async {
+            await fitness.loadProfile();
+            await fitness.loadWeightLogs();
+            await Get.find<WorkoutController>().loadWeeklyProgress();
+            await Get.find<WaterController>().loadTodayWater();
+            await Get.find<StreakController>().load();
+          },
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildHeroBanner(isDark),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildQuickStats(),
+                      const SizedBox(height: 20),
+                      const WaterSection(),
+                      const SizedBox(height: 20),
+                      _buildWeeklySummary(),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ),
+          ),
+        );
+      }),
     );
   }
 
   // ─── Hero banner ──────────────────────────────────────────────────────────
 
-  Widget _buildHeroBanner(FitnessController fitness, StreakController streak, bool isDark) {
-    final name = context.read<AuthController>().userName;
+  Widget _buildHeroBanner(bool isDark) {
+    final fitness = Get.find<FitnessController>();
+    final name = Get.find<AuthController>().userName.value;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
@@ -213,8 +204,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         color: AppColors.primary.withValues(alpha: 0.4)),
                   ),
                   child: Text(
-                    fitness.bmi != null
-                        ? 'IMC ${fitness.bmi!.toStringAsFixed(1)} · ${fitness.bmiCategory}'
+                    fitness.bmi.value != null
+                        ? 'IMC ${fitness.bmi.value!.toStringAsFixed(1)} · ${fitness.bmiCategory}'
                         : 'Completa tu perfil',
                     style: const TextStyle(
                       fontSize: 11,
@@ -224,13 +215,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Flexible(child: _streakPill('🔥', streak.workoutStreak, 'entreno')),
-                    const SizedBox(width: 8),
-                    Flexible(child: _streakPill('💧', streak.waterStreak, 'agua')),
-                  ],
-                ),
+                const StreakPills(),
               ],
             ),
           ),
@@ -251,38 +236,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _streakPill(String emoji, int days, String label) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(emoji, style: const TextStyle(fontSize: 13)),
-          const SizedBox(width: 5),
-          Flexible(
-            child: Text(
-              '$days ${days == 1 ? 'día' : 'días'} de $label',
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                fontSize: 11,
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ─── Quick stats ──────────────────────────────────────────────────────────
 
-  Widget _buildQuickStats(FitnessController fitness, WorkoutController workout) {
+  Widget _buildQuickStats() {
+    final fitness = Get.find<FitnessController>();
+    final workout = Get.find<WorkoutController>();
     final trained = workout.weeklyProgress.values.where((v) => v).length;
     return Row(
       children: [
@@ -300,12 +258,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: _statCard(
             icon: Icons.monitor_weight_outlined,
             iconColor: AppColors.primary,
-            value: fitness.weight != null
-                ? '${fitness.weight!.toStringAsFixed(1)} kg'
+            value: fitness.weight.value != null
+                ? '${fitness.weight.value!.toStringAsFixed(1)} kg'
                 : '--',
             label: 'Peso actual',
-            sub: fitness.height != null
-                ? '${fitness.height!.toStringAsFixed(0)} cm'
+            sub: fitness.height.value != null
+                ? '${fitness.height.value!.toStringAsFixed(0)} cm'
                 : 'sin datos',
           ),
         ),
@@ -366,132 +324,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  // ─── Agua ─────────────────────────────────────────────────────────────────
-
-  Widget _buildWaterSection(WaterController water) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.secondary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.secondary.withValues(alpha: 0.2)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.water_drop_rounded,
-                  color: AppColors.secondary, size: 18),
-              const SizedBox(width: 8),
-              const Text(
-                'HIDRATACIÓN HOY',
-                style: TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 11,
-                  color: AppColors.secondary,
-                  letterSpacing: 1,
-                ),
-              ),
-              const Spacer(),
-              Text(
-                '${water.glasses}/${water.goalGlasses}',
-                style: const TextStyle(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 18,
-                  color: AppColors.secondary,
-                ),
-              ),
-              const SizedBox(width: 4),
-              const Text(
-                'vasos',
-                style: TextStyle(fontSize: 11, color: AppColors.secondary),
-              ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(8),
-            child: LinearProgressIndicator(
-              value: water.progress,
-              backgroundColor: AppColors.secondary.withValues(alpha: 0.12),
-              color: water.goalReached
-                  ? AppColors.primary
-                  : AppColors.secondary,
-              minHeight: 6,
-            ),
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text(
-                water.statusText,
-                style: const TextStyle(fontSize: 11, color: Colors.grey),
-              ),
-              if (water.goalReached)
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: const Text(
-                    '✓ META',
-                    style: TextStyle(
-                        fontSize: 10,
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.bold),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: FilledButton.icon(
-                  onPressed: water.isLoading ? null : water.addGlass,
-                  icon: const Icon(Icons.add, size: 16),
-                  label: const Text('VASO',
-                      style: TextStyle(
-                          fontSize: 12, fontWeight: FontWeight.bold)),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: AppColors.secondary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 10),
-              OutlinedButton(
-                onPressed:
-                    (water.isLoading || water.glasses == 0) ? null : water.removeGlass,
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.grey,
-                  side: BorderSide(color: Colors.grey.withValues(alpha: 0.35)),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(
-                      vertical: 11, horizontal: 16),
-                ),
-                child: const Icon(Icons.remove, size: 16),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   // ─── Resumen semanal ──────────────────────────────────────────────────────
 
-  Widget _buildWeeklySummary(WorkoutController workout) {
+  Widget _buildWeeklySummary() {
+    final workout = Get.find<WorkoutController>();
     const days = ['LUN', 'MAR', 'MIÉ', 'JUE', 'VIE', 'SÁB', 'DOM'];
-    final today = DateTime.now().weekday; // 1=lunes … 7=domingo
+    final today = DateTime.now().weekday;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -583,40 +421,33 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── Diálogos ─────────────────────────────────────────────────────────────
 
   void _showDeleteAccountDialog(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Eliminar cuenta'),
-        content: const Text(
-          '¿Estás seguro? Esta acción es irreversible. '
-          'Se eliminarán todos tus datos permanentemente.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('CANCELAR'),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              await context.read<AuthController>().deleteAccount();
-            },
-            child:
-                const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
-          ),
-        ],
+    Get.dialog(AlertDialog(
+      title: const Text('Eliminar cuenta'),
+      content: const Text(
+        '¿Estás seguro? Esta acción es irreversible. '
+        'Se eliminarán todos tus datos permanentemente.',
       ),
-    );
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('CANCELAR')),
+        ElevatedButton(
+          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+          onPressed: () async {
+            Get.back();
+            await Get.find<AuthController>().deleteAccount();
+          },
+          child: const Text('ELIMINAR',
+              style: TextStyle(color: Colors.white)),
+        ),
+      ],
+    ));
   }
 
-  void _showUpdateProfileDialog(
-      BuildContext context, FitnessController fitness) {
+  void _showUpdateProfileDialog(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (_) => _ProfileSheet(fitness: fitness),
+      builder: (_) => const _ProfileSheet(),
     );
   }
 }
@@ -760,8 +591,7 @@ class _DashboardSkeletonState extends State<_DashboardSkeleton>
 // ─── Bottom sheet de perfil ────────────────────────────────────────────────────
 
 class _ProfileSheet extends StatefulWidget {
-  final FitnessController fitness;
-  const _ProfileSheet({required this.fitness});
+  const _ProfileSheet();
 
   @override
   State<_ProfileSheet> createState() => _ProfileSheetState();
@@ -787,13 +617,13 @@ class _ProfileSheetState extends State<_ProfileSheet> {
   @override
   void initState() {
     super.initState();
-    final f = widget.fitness;
-    _heightCtrl = TextEditingController(text: f.height?.toStringAsFixed(0));
-    _weightCtrl = TextEditingController(text: f.weight?.toStringAsFixed(1));
-    _goalCtrl   = TextEditingController(text: f.goalWeight?.toStringAsFixed(1));
-    _birthDate     = f.birthDate;
-    _gender        = f.gender;
-    _activityLevel = f.activityLevel;
+    final f = Get.find<FitnessController>();
+    _heightCtrl = TextEditingController(text: f.height.value?.toStringAsFixed(0));
+    _weightCtrl = TextEditingController(text: f.weight.value?.toStringAsFixed(1));
+    _goalCtrl   = TextEditingController(text: f.goalWeight.value?.toStringAsFixed(1));
+    _birthDate     = f.birthDate.value;
+    _gender        = f.gender.value;
+    _activityLevel = f.activityLevel.value;
   }
 
   @override
@@ -818,7 +648,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
 
   Future<void> _save() async {
     setState(() => _saving = true);
-    final ok = await widget.fitness.updateFullProfile(
+    final ok = await Get.find<FitnessController>().updateFullProfile(
       height:        double.tryParse(_heightCtrl.text),
       weight:        double.tryParse(_weightCtrl.text),
       goalWeight:    double.tryParse(_goalCtrl.text),

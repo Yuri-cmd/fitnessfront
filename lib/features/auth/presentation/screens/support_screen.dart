@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import '../../../../core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
 class SupportScreen extends StatelessWidget {
   const SupportScreen({super.key});

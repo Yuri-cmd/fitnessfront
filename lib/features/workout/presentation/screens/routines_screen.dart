@@ -1,14 +1,18 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:intl/intl.dart';
-import '../../../../core/theme/app_colors.dart';
-import '../../../auth/presentation/controllers/auth_controller.dart';
-import '../controllers/workout_controller.dart';
-import 'create_routine_screen.dart';
-import 'training_session_screen.dart';
-import 'streak_celebration_screen.dart';
-import 'one_rm_screen.dart';
+import 'package:get/get.dart';
+import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart';
+import 'package:fit_tracker_app/features/workout/presentation/controllers/workout_controller.dart';
+import 'package:fit_tracker_app/features/workout/presentation/widgets/common/workout_empty_state.dart';
+import 'package:fit_tracker_app/features/workout/presentation/widgets/common/routine_card.dart';
+import 'package:fit_tracker_app/features/workout/presentation/widgets/common/week_calendar_strip.dart';
+import 'package:fit_tracker_app/features/workout/presentation/widgets/common/timeline_entry.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/create_routine_screen.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/training_session_screen.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/streak_celebration_screen.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/one_rm_screen.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
 class RoutinesScreen extends StatefulWidget {
   const RoutinesScreen({super.key});
@@ -17,25 +21,26 @@ class RoutinesScreen extends StatefulWidget {
   State<RoutinesScreen> createState() => _RoutinesScreenState();
 }
 
-class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
-  DateTime _selectedDate = DateTime.now();
+class _RoutinesScreenState extends State<RoutinesScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
+  late final WorkoutController _c;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final workout = context.read<WorkoutController>();
-      workout.loadRoutines();
-      workout.loadWorkoutHistory();
-    });
+    _c = Get.find<WorkoutController>();
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final workout = context.watch<WorkoutController>();
-
     return Scaffold(
       appBar: AppBar(
         title: const Text('RUTINAS'),
@@ -43,10 +48,7 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
           IconButton(
             tooltip: 'Calculadora 1RM',
             icon: const Icon(Icons.calculate_outlined, color: AppColors.primary),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const OneRmScreen()),
-            ),
+            onPressed: () => Get.to(() => const OneRmScreen()),
           ),
         ],
         bottom: TabBar(
@@ -62,333 +64,137 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'fab_routines',
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const CreateRoutineScreen()),
-        ),
+        onPressed: () => Get.to(() => const CreateRoutineScreen()),
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Pestaña 1: Mis Rutinas
-          workout.isLoading
-              ? const Center(child: CircularProgressIndicator())
-              : workout.routines.isEmpty
-                  ? _buildEmptyState()
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(20),
-                      itemCount: workout.routines.length,
-                      itemBuilder: (context, index) {
-                        final routine = workout.routines[index];
-                        return _buildRoutineCard(routine, workout);
-                      },
-                    ),
-
-          // Pestaña 2: Historial / Línea de tiempo
-          Column(
-            children: [
-              _buildHorizontalCalendar(),
-              const Divider(height: 1),
-              Expanded(
-                child: workout.workoutLogs.isEmpty
-                    ? _buildEmptyHistory()
-                    : _buildTimeline(workout.workoutLogs),
-              ),
-            ],
-          ),
+          _RoutinesTab(onStart: _startTraining),
+          _HistoryTab(controller: _c),
         ],
       ),
     );
   }
 
-  Widget _buildHorizontalCalendar() {
-    // Generar los 7 días de la semana actual
-    final now = DateTime.now();
-    final firstDayOfWeek = now.subtract(Duration(days: now.weekday - 1));
-    
-    return Container(
-      height: 100,
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 7,
-        itemBuilder: (context, index) {
-          final day = firstDayOfWeek.add(Duration(days: index));
-          final isSelected = day.day == _selectedDate.day && day.month == _selectedDate.month;
-          final isToday = day.day == now.day && day.month == now.month;
-
-          return GestureDetector(
-            onTap: () => setState(() => _selectedDate = day),
-            child: Container(
-              width: 55,
-              margin: const EdgeInsets.symmetric(horizontal: 8),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.primary : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-                border: isToday && !isSelected ? Border.all(color: AppColors.primary, width: 1) : null,
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    DateFormat('E', 'es_ES').format(day).substring(0, 3).toLowerCase(),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : Colors.grey,
-                      fontSize: 12,
-                      fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    day.day.toString(),
-                    style: TextStyle(
-                      color: isSelected ? Colors.white : AppColors.textTitle,
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.fitness_center_outlined, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text('No hay rutinas creadas', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
-          const Text('Empieza creando tu primer plan de entrenamiento'),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildEmptyHistory() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Icon(Icons.calendar_month_outlined, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
-          const SizedBox(height: 16),
-          const Text('Historial vacío', style: TextStyle(fontSize: 18, color: Colors.grey, fontWeight: FontWeight.bold)),
-          const Text('Tus entrenamientos completados aparecerán aquí'),
-          const SizedBox(height: 16),
-          TextButton(
-            onPressed: () => context.read<WorkoutController>().loadWorkoutHistory(),
-            child: const Text('REINTENTAR CARGAR'),
-          )
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTimeline(List<dynamic> logs) {
-    // Filtrar logs por la fecha seleccionada
-    final filteredLogs = logs.where((log) {
-      final logDate = DateTime.parse(log['completed_at']).toLocal();
-      return logDate.day == _selectedDate.day && 
-             logDate.month == _selectedDate.month && 
-             logDate.year == _selectedDate.year;
-    }).toList();
-
-    if (filteredLogs.isEmpty) {
-      return const Center(child: Text('No entrenaste este día', style: TextStyle(color: Colors.grey)));
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.all(20),
-      itemCount: filteredLogs.length,
-      itemBuilder: (context, index) {
-        final log = filteredLogs[index];
-        final DateTime date = DateTime.parse(log['completed_at']).toLocal();
-        final String formattedDate = DateFormat('EEEE, d MMMM', 'es_ES').format(date);
-        final String formattedTime = DateFormat('jm', 'es_ES').format(date);
-        
-        return IntrinsicHeight(
-          child: Row(
-            children: [
-              Column(
-                children: [
-                  Container(width: 12, height: 12, decoration: const BoxDecoration(color: AppColors.primary, shape: BoxShape.circle)),
-                  if (index != filteredLogs.length - 1)
-                    Expanded(child: Container(width: 2, color: AppColors.primary.withValues(alpha: 0.3))),
-                ],
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.only(bottom: 24),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Theme.of(context).colorScheme.surface,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10)]
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(formattedDate.toUpperCase(), style: const TextStyle(fontSize: 12, color: AppColors.primary, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 4),
-                      Text(log['routine']?['name'] ?? 'Rutina eliminada', style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          const Icon(Icons.access_time, size: 14, color: Colors.grey),
-                          const SizedBox(width: 4),
-                          Text(formattedTime, style: const TextStyle(color: Colors.grey, fontSize: 13)),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              )
-            ],
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildRoutineCard(dynamic routine, WorkoutController workout) {
-    final isDoneToday = workout.workoutLogs.any((log) {
-      if (log['routine_id'] != routine['id']) return false;
-      final logDate = DateTime.parse(log['completed_at']).toLocal();
-      final now = DateTime.now();
-      return logDate.year == now.year && logDate.month == now.month && logDate.day == now.day;
-    });
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: ExpansionTile(
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                routine['name'],
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
-              ),
-            ),
-            if (isDoneToday)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
-                child: Text('¡HECHA!', style: TextStyle(color: AppColors.textTitle, fontWeight: FontWeight.bold, fontSize: 10)),
-              ),
-            IconButton(
-              icon: const Icon(Icons.edit_note_outlined, color: AppColors.primary),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CreateRoutineScreen(routine: routine)),
-              ),
-            ),
-          ],
-        ),
-        subtitle: Text('${routine['exercises']?.length ?? 0} EJERCICIOS'),
-        leading: CircleAvatar(
-          backgroundColor: isDoneToday ? AppColors.primary : Colors.grey.shade200,
-          child: Icon(isDoneToday ? Icons.check : Icons.flash_on, color: isDoneToday ? Colors.white : Colors.grey),
-        ),
-        children: [
-          ...?routine['exercises']?.map<Widget>((ex) => ListTile(
-                title: Text(ex['name'] ?? 'S/N'),
-                subtitle: Text('${ex['pivot']['sets']} series x ${ex['pivot']['reps'] ?? 0} reps'),
-                trailing: const Icon(Icons.check_circle_outline),
-              )),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: isDoneToday ? null : () => _startTraining(routine),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: isDoneToday ? Colors.grey.shade100 : AppColors.primary,
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: Text(isDoneToday ? 'YA ENTRENADO HOY' : '¡A ENTRENAR!'),
-            ),
-          )
-        ],
-      ),
-    );
-  }
-
-  void _startTraining(dynamic routine) async {
-    final result = await Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => TrainingSessionScreen(routine: routine)),
+  void _startTraining(Routine routine) async {
+    final result = await Get.to<dynamic>(
+      () => TrainingSessionScreen(routine: routine),
     );
 
     if (result is List && mounted) {
-      // Guardar en background — no bloqueamos la UI
-      final workout = context.read<WorkoutController>();
-      final userName = context.read<AuthController>().userName;
+      final streakData = _c.computeStreakData(routineId: routine.id);
+      final userName = Get.find<AuthController>().userName.value;
 
-      // Calcular datos optimistas con los logs YA cargados + hoy incluido
-      final existingLogs = List<dynamic>.from(workout.workoutLogs);
-      final now = DateTime.now();
-      final todayIso = now.toIso8601String();
-
-      // Añadir hoy de forma optimista si no está ya
-      final todayLogged = existingLogs.any((log) {
-        final d = DateTime.parse(log['completed_at']).toLocal();
-        return d.year == now.year && d.month == now.month && d.day == now.day;
-      });
-      if (!todayLogged) {
-        existingLogs.insert(0, {'completed_at': todayIso, 'routine_id': routine['id']});
-      }
-
-      // Racha consecutiva desde hoy
-      int computedStreak = 0;
-      for (int i = 0; i < 365; i++) {
-        final day = now.subtract(Duration(days: i));
-        final trained = existingLogs.any((log) {
-          final d = DateTime.parse(log['completed_at']).toLocal();
-          return d.year == day.year && d.month == day.month && d.day == day.day;
-        });
-        if (trained) {
-          computedStreak++;
-        } else if (i > 0) {
-          break;
-        }
-      }
-
-      // Días entrenados esta semana
-      final monday = now.subtract(Duration(days: now.weekday - 1));
-      final trainedDays = List.generate(7, (i) {
-        final day = monday.add(Duration(days: i));
-        return existingLogs.any((log) {
-          final d = DateTime.parse(log['completed_at']).toLocal();
-          return d.year == day.year && d.month == day.month && d.day == day.day;
-        });
-      });
-
-      // Mostrar celebración de inmediato
-      unawaited(Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => StreakCelebrationScreen(
-            streak: computedStreak,
-            trainedDaysThisWeek: trainedDays,
+      Get.to(() => StreakCelebrationScreen(
+            streak: streakData.streak,
+            trainedDaysThisWeek: streakData.trainedDays,
             userName: userName,
-          ),
-        ),
-      ));
+          ));
 
-      // Guardar y refrescar en background
-      workout.completeRoutine(
-        routine['id'],
-        List<Map<String, dynamic>>.from(result),
-      ).then((_) {
-        if (mounted) workout.loadWorkoutHistory();
-      });
+      unawaited(_c
+          .completeRoutine(
+            routine.id,
+            List<Map<String, dynamic>>.from(result),
+          )
+          .then((_) => _c.loadWorkoutHistory()));
     }
+  }
+}
+
+class _RoutinesTab extends StatelessWidget {
+  final void Function(Routine routine) onStart;
+
+  const _RoutinesTab({required this.onStart});
+
+  @override
+  Widget build(BuildContext context) {
+    final c = Get.find<WorkoutController>();
+    return Obx(() {
+      if (c.isLoading.value) {
+        return const Center(child: CircularProgressIndicator());
+      }
+      if (c.routines.isEmpty) {
+        return const WorkoutEmptyState(
+          icon: Icons.fitness_center_outlined,
+          title: 'No hay rutinas creadas',
+          subtitle: 'Empieza creando tu primer plan de entrenamiento',
+        );
+      }
+      return ListView.builder(
+        padding: const EdgeInsets.all(20),
+        itemCount: c.routines.length,
+        itemBuilder: (_, i) {
+          final routine = c.routines[i];
+          return RoutineCard(
+            routine: routine,
+            isDoneToday: c.isDoneToday(routine),
+            onStart: () => onStart(routine),
+            onEdit: () => Get.to(() => CreateRoutineScreen(routine: routine)),
+          );
+        },
+      );
+    });
+  }
+}
+
+class _HistoryTab extends StatelessWidget {
+  final WorkoutController controller;
+
+  const _HistoryTab({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Obx(() => WeekCalendarStrip(
+              selectedDate: controller.selectedDate.value,
+              onDateSelected: (d) => controller.selectedDate.value = d,
+            )),
+        const Divider(height: 1),
+        Expanded(
+          child: Obx(() {
+            if (controller.workoutLogs.isEmpty) {
+              return WorkoutEmptyState(
+                icon: Icons.calendar_month_outlined,
+                title: 'Historial vacío',
+                subtitle: 'Tus entrenamientos completados aparecerán aquí',
+                action: TextButton(
+                  onPressed: controller.loadWorkoutHistory,
+                  child: const Text('REINTENTAR CARGAR'),
+                ),
+              );
+            }
+
+            final selected = controller.selectedDate.value;
+            final filtered = controller.workoutLogs.where((log) {
+              final d = log.completedAt;
+              return d.day == selected.day &&
+                  d.month == selected.month &&
+                  d.year == selected.year;
+            }).toList();
+
+            if (filtered.isEmpty) {
+              return const Center(
+                child: Text(
+                  'No entrenaste este día',
+                  style: TextStyle(color: Colors.grey),
+                ),
+              );
+            }
+
+            return ListView.builder(
+              padding: const EdgeInsets.all(20),
+              itemCount: filtered.length,
+              itemBuilder: (_, i) => TimelineEntry(
+                log: filtered[i],
+                isLast: i == filtered.length - 1,
+              ),
+            );
+          }),
+        ),
+      ],
+    );
   }
 }
