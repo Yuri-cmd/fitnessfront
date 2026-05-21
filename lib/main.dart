@@ -63,26 +63,22 @@ class FitTrackerApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Obx(() {
-      final themeMode = Get.find<ThemeController>().mode;
-      return GetMaterialApp(
-        title: 'Power Stack',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.lightTheme,
-        darkTheme: AppTheme.darkTheme,
-        themeMode: themeMode,
-        home: Obx(() {
-          final auth = Get.find<AuthController>();
-          if (!auth.isInitialized.value) {
-            return const Scaffold(
-              body: Center(child: CircularProgressIndicator()),
-            );
-          }
-          return auth.isAuthenticated.value
-              ? const MainScreen()
-              : const LoginScreen();
-        }),
-      );
-    });
+    final theme = Get.find<ThemeController>();
+    final auth = Get.find<AuthController>();
+
+    return Obx(() => GetMaterialApp(
+          title: 'Power Stack',
+          debugShowCheckedModeBanner: false,
+          theme: AppTheme.lightTheme,
+          darkTheme: AppTheme.darkTheme,
+          themeMode: theme.modeObs.value,
+          home: !auth.isInitialized.value
+              ? const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                )
+              : auth.isAuthenticated.value
+                  ? const MainScreen()
+                  : const LoginScreen(),
+        ));
   }
 }

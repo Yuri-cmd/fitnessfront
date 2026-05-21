@@ -13,7 +13,7 @@ class WeightSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<StatsController>();
     return Obx(() {
-      final history = c.weightHistory;
+      final history = c.weightHistory.toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

@@ -12,13 +12,16 @@ class ActivityHeatmapCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final c = Get.find<StatsController>();
-    return Obx(() => Column(
+    return Obx(() {
+      final activity = c.activityHeatmap.toList();
+      return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SectionHeader('ACTIVIDAD ESTE AÑO'),
-            StatsCard(_HeatmapContent(activity: c.activityHeatmap)),
+            StatsCard(_HeatmapContent(activity: activity)),
           ],
-        ));
+        );
+    });
   }
 }
 

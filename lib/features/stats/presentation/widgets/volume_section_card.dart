@@ -13,7 +13,7 @@ class VolumeSectionCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<StatsController>();
     return Obx(() {
-      final volume = c.volumeByMuscle;
+      final volume = c.volumeByMuscle.toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

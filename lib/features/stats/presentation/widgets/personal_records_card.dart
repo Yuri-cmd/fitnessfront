@@ -12,7 +12,7 @@ class PersonalRecordsCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final c = Get.find<StatsController>();
     return Obx(() {
-      final records = c.personalRecords;
+      final records = c.personalRecords.toList();
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

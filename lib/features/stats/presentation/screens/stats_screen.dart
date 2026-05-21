@@ -14,28 +14,31 @@ class StatsScreen extends StatelessWidget {
     final c = Get.find<StatsController>();
     return Scaffold(
       appBar: AppBar(title: const Text('ESTADÍSTICAS')),
-      body: Obx(() => c.isLoading.value
-          ? const Center(child: CircularProgressIndicator())
-          : RefreshIndicator(
-              onRefresh: c.loadAll,
-              child: const SingleChildScrollView(
-                physics: AlwaysScrollableScrollPhysics(),
-                padding: EdgeInsets.all(20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    WeightSectionCard(),
-                    SizedBox(height: 32),
-                    ActivityHeatmapCard(),
-                    SizedBox(height: 32),
-                    VolumeSectionCard(),
-                    SizedBox(height: 32),
-                    PersonalRecordsCard(),
-                    SizedBox(height: 24),
-                  ],
-                ),
-              ),
-            )),
+      body: Obx(() {
+        if (c.isLoading.value) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        return RefreshIndicator(
+          onRefresh: c.loadAll,
+          child: const SingleChildScrollView(
+            physics: AlwaysScrollableScrollPhysics(),
+            padding: EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                WeightSectionCard(),
+                SizedBox(height: 32),
+                ActivityHeatmapCard(),
+                SizedBox(height: 32),
+                VolumeSectionCard(),
+                SizedBox(height: 32),
+                PersonalRecordsCard(),
+                SizedBox(height: 24),
+              ],
+            ),
+          ),
+        );
+      }),
     );
   }
 }

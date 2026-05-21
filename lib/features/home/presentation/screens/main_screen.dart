@@ -7,14 +7,18 @@ import 'package:fit_tracker_app/features/metrics/presentation/screens/weight_met
 import 'package:fit_tracker_app/features/stats/presentation/screens/stats_screen.dart';
 import 'more_screen.dart';
 
+class _NavController extends GetxController {
+  final currentIndex = 0.obs;
+}
+
 class MainScreen extends StatelessWidget {
   const MainScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final currentIndex = 0.obs;
+    final nav = Get.put(_NavController());
 
-    final screens = const [
+    const screens = [
       DashboardScreen(),
       RoutinesScreen(),
       WeightMetricsScreen(),
@@ -24,13 +28,13 @@ class MainScreen extends StatelessWidget {
 
     return Obx(() => Scaffold(
           body: IndexedStack(
-            index: currentIndex.value,
+            index: nav.currentIndex.value,
             children: screens,
           ),
           bottomNavigationBar: SafeArea(
             child: AppNavBar(
-              currentIndex: currentIndex.value,
-              onTap: (i) => currentIndex.value = i,
+              currentIndex: nav.currentIndex.value,
+              onTap: (i) => nav.currentIndex.value = i,
             ),
           ),
         ));
