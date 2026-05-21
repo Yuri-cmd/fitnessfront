@@ -125,7 +125,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         ],
       ),
       body: fitness.isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const _DashboardSkeleton()
           : RefreshIndicator(
               onRefresh: () async {
                 await fitness.loadProfile();
@@ -619,6 +619,142 @@ class _DashboardScreenState extends State<DashboardScreen> {
       builder: (_) => _ProfileSheet(fitness: fitness),
     );
   }
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+class _DashboardSkeleton extends StatefulWidget {
+  const _DashboardSkeleton();
+
+  @override
+  State<_DashboardSkeleton> createState() => _DashboardSkeletonState();
+}
+
+class _DashboardSkeletonState extends State<_DashboardSkeleton>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 900))
+      ..repeat(reverse: true);
+    _anim = Tween<double>(begin: 0.4, end: 0.9)
+        .animate(CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final base = isDark ? Colors.white : Colors.black;
+
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) {
+        final block = base.withValues(alpha: _anim.value * 0.12);
+        return SingleChildScrollView(
+          physics: const NeverScrollableScrollPhysics(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Hero banner placeholder
+              Container(
+                width: double.infinity,
+                height: 160,
+                padding: const EdgeInsets.fromLTRB(24, 28, 24, 20),
+                color: isDark
+                    ? const Color(0xFF1A1F12)
+                    : const Color(0xFF2E3D1A),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _box(100, 12, Colors.white.withValues(alpha: _anim.value * 0.15)),
+                    const SizedBox(height: 8),
+                    _box(160, 22, Colors.white.withValues(alpha: _anim.value * 0.2)),
+                    const SizedBox(height: 14),
+                    _box(130, 26, Colors.white.withValues(alpha: _anim.value * 0.12), radius: 20),
+                  ],
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
+                child: Column(
+                  children: [
+                    // Quick stats row
+                    Row(
+                      children: [
+                        Expanded(child: _card(block, 80)),
+                        const SizedBox(width: 12),
+                        Expanded(child: _card(block, 80)),
+                      ],
+                    ),
+                    const SizedBox(height: 20),
+                    // Water section
+                    _card(block, 140),
+                    const SizedBox(height: 20),
+                    // Weekly summary header
+                    Row(
+                      children: [
+                        _box(110, 11, block),
+                        const Spacer(),
+                        _box(60, 11, block),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    // Day bubbles
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: List.generate(
+                        7,
+                        (_) => Column(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                  color: block, shape: BoxShape.circle),
+                            ),
+                            const SizedBox(height: 5),
+                            _box(16, 8, block),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _box(double w, double h, Color color, {double radius = 6}) =>
+      Container(
+        width: w,
+        height: h,
+        decoration: BoxDecoration(
+            color: color, borderRadius: BorderRadius.circular(radius)),
+      );
+
+  Widget _card(Color block, double height) => Container(
+        width: double.infinity,
+        height: height,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: block,
+          borderRadius: BorderRadius.circular(20),
+        ),
+      );
 }
 
 // ─── Bottom sheet de perfil ────────────────────────────────────────────────────

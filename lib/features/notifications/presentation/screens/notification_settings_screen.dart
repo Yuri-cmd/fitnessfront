@@ -64,7 +64,7 @@ class _NotificationSettingsScreenState
               onPressed: () async {
                 final ctrl = context.read<NotificationSettingsController>();
                 final ok = await ctrl.save();
-                if (!mounted) return;
+                if (!context.mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
                     content: Text(

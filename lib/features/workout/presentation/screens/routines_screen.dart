@@ -1,10 +1,13 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/theme/app_colors.dart';
+import '../../../auth/presentation/controllers/auth_controller.dart';
 import '../controllers/workout_controller.dart';
 import 'create_routine_screen.dart';
 import 'training_session_screen.dart';
+import 'streak_celebration_screen.dart';
 import 'one_rm_screen.dart';
 
 class RoutinesScreen extends StatefulWidget {
@@ -324,15 +327,68 @@ class _RoutinesScreenState extends State<RoutinesScreen> with SingleTickerProvid
     );
 
     if (result is List && mounted) {
-      await context.read<WorkoutController>().completeRoutine(
-            routine['id'],
-            List<Map<String, dynamic>>.from(result),
-          );
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('¡Entrenamiento guardado con éxito!')),
-        );
+      // Guardar en background — no bloqueamos la UI
+      final workout = context.read<WorkoutController>();
+      final userName = context.read<AuthController>().userName;
+
+      // Calcular datos optimistas con los logs YA cargados + hoy incluido
+      final existingLogs = List<dynamic>.from(workout.workoutLogs);
+      final now = DateTime.now();
+      final todayIso = now.toIso8601String();
+
+      // Añadir hoy de forma optimista si no está ya
+      final todayLogged = existingLogs.any((log) {
+        final d = DateTime.parse(log['completed_at']).toLocal();
+        return d.year == now.year && d.month == now.month && d.day == now.day;
+      });
+      if (!todayLogged) {
+        existingLogs.insert(0, {'completed_at': todayIso, 'routine_id': routine['id']});
       }
+
+      // Racha consecutiva desde hoy
+      int computedStreak = 0;
+      for (int i = 0; i < 365; i++) {
+        final day = now.subtract(Duration(days: i));
+        final trained = existingLogs.any((log) {
+          final d = DateTime.parse(log['completed_at']).toLocal();
+          return d.year == day.year && d.month == day.month && d.day == day.day;
+        });
+        if (trained) {
+          computedStreak++;
+        } else if (i > 0) {
+          break;
+        }
+      }
+
+      // Días entrenados esta semana
+      final monday = now.subtract(Duration(days: now.weekday - 1));
+      final trainedDays = List.generate(7, (i) {
+        final day = monday.add(Duration(days: i));
+        return existingLogs.any((log) {
+          final d = DateTime.parse(log['completed_at']).toLocal();
+          return d.year == day.year && d.month == day.month && d.day == day.day;
+        });
+      });
+
+      // Mostrar celebración de inmediato
+      unawaited(Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => StreakCelebrationScreen(
+            streak: computedStreak,
+            trainedDaysThisWeek: trainedDays,
+            userName: userName,
+          ),
+        ),
+      ));
+
+      // Guardar y refrescar en background
+      workout.completeRoutine(
+        routine['id'],
+        List<Map<String, dynamic>>.from(result),
+      ).then((_) {
+        if (mounted) workout.loadWorkoutHistory();
+      });
     }
   }
 }

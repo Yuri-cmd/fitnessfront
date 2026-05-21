@@ -48,7 +48,8 @@ class FitnessController with ChangeNotifier {
 
   double get weightToLose {
     if (_bmi == null || _bmi! <= 24.9) return 0;
-    double idealWeight = 24.9 * pow(_height! / 100, 2);
+    if (_height == null || _weight == null) return 0;
+    final idealWeight = 24.9 * pow(_height! / 100, 2);
     return _weight! - idealWeight;
   }
 
