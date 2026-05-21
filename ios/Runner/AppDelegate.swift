@@ -7,9 +7,8 @@ import ActivityKit
 struct WorkoutActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var isResting: Bool
-        var restRemaining: Int
-        var restTotal: Int
-        var elapsedSeconds: Int
+        var restEndDate: Date?
+        var sessionStartDate: Date
         var currentSet: Int
         var totalSets: Int
     }
@@ -29,16 +28,16 @@ private class LiveActivityManager {
         exerciseName: String,
         currentSet: Int,
         totalSets: Int,
-        elapsedSeconds: Int
+        sessionStartMillis: Double
     ) {
         guard ActivityAuthorizationInfo().areActivitiesEnabled else { return }
 
         let attrs = WorkoutActivityAttributes(routineName: routineName, exerciseName: exerciseName)
+        let sessionStart = Date(timeIntervalSince1970: sessionStartMillis / 1000)
         let state = WorkoutActivityAttributes.ContentState(
             isResting: false,
-            restRemaining: 0,
-            restTotal: 0,
-            elapsedSeconds: elapsedSeconds,
+            restEndDate: nil,
+            sessionStartDate: sessionStart,
             currentSet: currentSet,
             totalSets: totalSets
         )
@@ -55,18 +54,18 @@ private class LiveActivityManager {
 
     func updateActivity(
         isResting: Bool,
-        restRemaining: Int,
-        restTotal: Int,
-        elapsedSeconds: Int,
+        restEndMillis: Double?,
+        sessionStartMillis: Double,
         currentSet: Int,
         totalSets: Int
     ) {
         guard let activity = currentActivity else { return }
+        let sessionStart = Date(timeIntervalSince1970: sessionStartMillis / 1000)
+        let restEnd: Date? = restEndMillis.map { Date(timeIntervalSince1970: $0 / 1000) }
         let newState = WorkoutActivityAttributes.ContentState(
             isResting: isResting,
-            restRemaining: restRemaining,
-            restTotal: restTotal,
-            elapsedSeconds: elapsedSeconds,
+            restEndDate: restEnd,
+            sessionStartDate: sessionStart,
             currentSet: currentSet,
             totalSets: totalSets
         )
@@ -124,11 +123,11 @@ private class LiveActivityManager {
                     return
                 }
                 manager.startActivity(
-                    routineName:    args["routineName"]    as? String ?? "",
-                    exerciseName:   args["exerciseName"]   as? String ?? "",
-                    currentSet:     args["currentSet"]     as? Int    ?? 1,
-                    totalSets:      args["totalSets"]      as? Int    ?? 1,
-                    elapsedSeconds: args["elapsedSeconds"] as? Int    ?? 0
+                    routineName:        args["routineName"]        as? String ?? "",
+                    exerciseName:       args["exerciseName"]       as? String ?? "",
+                    currentSet:         args["currentSet"]         as? Int    ?? 1,
+                    totalSets:          args["totalSets"]          as? Int    ?? 1,
+                    sessionStartMillis: args["sessionStartMillis"] as? Double ?? 0
                 )
                 result(nil)
 
@@ -138,12 +137,11 @@ private class LiveActivityManager {
                     return
                 }
                 manager.updateActivity(
-                    isResting:      args["isResting"]      as? Bool ?? false,
-                    restRemaining:  args["restRemaining"]  as? Int  ?? 0,
-                    restTotal:      args["restTotal"]      as? Int  ?? 0,
-                    elapsedSeconds: args["elapsedSeconds"] as? Int  ?? 0,
-                    currentSet:     args["currentSet"]     as? Int  ?? 1,
-                    totalSets:      args["totalSets"]      as? Int  ?? 1
+                    isResting:          args["isResting"]          as? Bool   ?? false,
+                    restEndMillis:      args["restEndMillis"]      as? Double,
+                    sessionStartMillis: args["sessionStartMillis"] as? Double ?? 0,
+                    currentSet:         args["currentSet"]         as? Int    ?? 1,
+                    totalSets:          args["totalSets"]          as? Int    ?? 1
                 )
                 result(nil)
 

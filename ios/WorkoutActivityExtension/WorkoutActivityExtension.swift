@@ -7,9 +7,8 @@ import SwiftUI
 struct WorkoutActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
         var isResting: Bool
-        var restRemaining: Int   // segundos
-        var restTotal: Int
-        var elapsedSeconds: Int
+        var restEndDate: Date?      // nil cuando no está descansando
+        var sessionStartDate: Date  // para calcular el tiempo transcurrido
         var currentSet: Int
         var totalSets: Int
     }
@@ -20,52 +19,16 @@ struct WorkoutActivityAttributes: ActivityAttributes {
 
 // ── Colores ───────────────────────────────────────────────────────────────────
 
-private let primary = Color(red: 0.56, green: 0.73, blue: 0.18)   // AppColors.primary
+private let primary = Color(red: 0.56, green: 0.73, blue: 0.18)
 
-// ── Vistas ────────────────────────────────────────────────────────────────────
+// ── Lock Screen / Notification view ──────────────────────────────────────────
 
-struct RestTimerArc: View {
-    let remaining: Int
-    let total: Int
-
-    private var progress: Double {
-        guard total > 0 else { return 1 }
-        return Double(remaining) / Double(total)
-    }
-
-    var body: some View {
-        ZStack {
-            Circle()
-                .stroke(primary.opacity(0.2), lineWidth: 3)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(primary, style: StrokeStyle(lineWidth: 3, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.linear(duration: 1), value: remaining)
-        }
-    }
-}
-
-// Lock Screen / Notification view
 struct LockScreenView: View {
     let state: WorkoutActivityAttributes.ContentState
     let attrs: WorkoutActivityAttributes
 
-    var timerText: String {
-        let m = state.restRemaining / 60
-        let s = state.restRemaining % 60
-        return String(format: "%02d:%02d", m, s)
-    }
-
-    var elapsedText: String {
-        let m = state.elapsedSeconds / 60
-        let s = state.elapsedSeconds % 60
-        return String(format: "%02d:%02d", m, s)
-    }
-
     var body: some View {
         HStack(spacing: 16) {
-            // Icono
             Image(systemName: "dumbbell.fill")
                 .font(.system(size: 28, weight: .bold))
                 .foregroundColor(primary)
@@ -86,24 +49,24 @@ struct LockScreenView: View {
 
             Spacer()
 
-            if state.isResting {
-                ZStack {
-                    RestTimerArc(remaining: state.restRemaining, total: state.restTotal)
-                        .frame(width: 52, height: 52)
-                    VStack(spacing: 0) {
-                        Text(timerText)
-                            .font(.system(size: 13, weight: .bold, design: .monospaced))
-                            .foregroundColor(primary)
-                        Text("descanso")
-                            .font(.system(size: 8))
-                            .foregroundColor(.secondary)
-                    }
+            if state.isResting, let restEnd = state.restEndDate {
+                VStack(spacing: 0) {
+                    // SwiftUI cuenta hacia atrás automáticamente — no necesita updates
+                    Text(timerInterval: Date.now...restEnd, countsDown: true)
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
+                        .foregroundColor(primary)
+                        .monospacedDigit()
+                    Text("descanso")
+                        .font(.system(size: 9))
+                        .foregroundColor(.secondary)
                 }
             } else {
-                VStack(spacing: 2) {
-                    Text(elapsedText)
-                        .font(.system(size: 16, weight: .bold, design: .monospaced))
+                VStack(spacing: 0) {
+                    // SwiftUI cuenta hacia arriba automáticamente
+                    Text(state.sessionStartDate, style: .timer)
+                        .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(primary)
+                        .monospacedDigit()
                     Text("sesión")
                         .font(.system(size: 9))
                         .foregroundColor(.secondary)
@@ -121,13 +84,11 @@ struct LockScreenView: View {
 struct WorkoutActivityExtension: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: WorkoutActivityAttributes.self) { context in
-            // Lock Screen / banner
             LockScreenView(state: context.state, attrs: context.attributes)
                 .background(Color(UIColor.systemBackground))
 
         } dynamicIsland: { context in
             DynamicIsland {
-                // Expanded
                 DynamicIslandExpandedRegion(.leading) {
                     Label(context.attributes.exerciseName, systemImage: "dumbbell.fill")
                         .font(.system(size: 13, weight: .semibold))
@@ -140,34 +101,30 @@ struct WorkoutActivityExtension: Widget {
                         .foregroundColor(.secondary)
                 }
                 DynamicIslandExpandedRegion(.bottom) {
-                    if context.state.isResting {
+                    if context.state.isResting, let restEnd = context.state.restEndDate {
                         HStack {
-                            Image(systemName: "timer")
-                                .foregroundColor(primary)
+                            Image(systemName: "timer").foregroundColor(primary)
                             Text("Descansando")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                             Spacer()
-                            let m = context.state.restRemaining / 60
-                            let s = context.state.restRemaining % 60
-                            Text(String(format: "%02d:%02d", m, s))
+                            Text(timerInterval: Date.now...restEnd, countsDown: true)
                                 .font(.system(size: 18, weight: .bold, design: .monospaced))
                                 .foregroundColor(primary)
+                                .monospacedDigit()
                         }
                         .padding(.horizontal, 4)
                     } else {
                         HStack {
-                            Image(systemName: "bolt.fill")
-                                .foregroundColor(primary)
+                            Image(systemName: "bolt.fill").foregroundColor(primary)
                             Text("¡A entrenar!")
                                 .font(.system(size: 12))
                                 .foregroundColor(.secondary)
                             Spacer()
-                            let m = context.state.elapsedSeconds / 60
-                            let s = context.state.elapsedSeconds % 60
-                            Text(String(format: "%02d:%02d", m, s))
+                            Text(context.state.sessionStartDate, style: .timer)
                                 .font(.system(size: 14, weight: .bold, design: .monospaced))
                                 .foregroundColor(.secondary)
+                                .monospacedDigit()
                         }
                         .padding(.horizontal, 4)
                     }
@@ -177,25 +134,20 @@ struct WorkoutActivityExtension: Widget {
                     .foregroundColor(primary)
                     .font(.system(size: 12))
             } compactTrailing: {
-                if context.state.isResting {
-                    let m = context.state.restRemaining / 60
-                    let s = context.state.restRemaining % 60
-                    Text(String(format: "%d:%02d", m, s))
+                if context.state.isResting, let restEnd = context.state.restEndDate {
+                    Text(timerInterval: Date.now...restEnd, countsDown: true)
                         .font(.system(size: 12, weight: .bold, design: .monospaced))
                         .foregroundColor(primary)
+                        .monospacedDigit()
+                        .frame(maxWidth: 44)
                 } else {
                     Image(systemName: "bolt.fill")
                         .foregroundColor(primary)
                         .font(.system(size: 12))
                 }
             } minimal: {
-                if context.state.isResting {
-                    Image(systemName: "timer")
-                        .foregroundColor(primary)
-                } else {
-                    Image(systemName: "dumbbell.fill")
-                        .foregroundColor(primary)
-                }
+                Image(systemName: context.state.isResting ? "timer" : "dumbbell.fill")
+                    .foregroundColor(primary)
             }
         }
     }

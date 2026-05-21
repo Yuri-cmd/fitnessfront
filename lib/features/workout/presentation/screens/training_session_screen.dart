@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:audioplayers/audioplayers.dart';
@@ -45,20 +46,27 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
   // Un controller por set
   late List<List<TextEditingController>> _controllers;
 
+  // Lista mutable de ejercicios (permite reordenar)
+  late List<dynamic> _exerciseOrder;
+
   // ── Init / dispose ────────────────────────────────────────────────────────
   @override
   void initState() {
     super.initState();
     _buildSets();
     _sessionStart = DateTime.now();
+    // Solo actualiza la UI en pantalla — Live Activity usa timestamps nativos
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted) {
-        setState(() {});
-        _updateLiveActivity();
-      }
+      if (mounted) setState(() {});
     });
     WidgetsBinding.instance.addObserver(this);
     _autoFillCurrentWeight();
+    // Audio session: no interrumpir música del usuario
+    if (Platform.isIOS) {
+      AudioPlayer.global.setAudioContext(AudioContext(
+        iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
+      ));
+    }
     _startLiveActivity();
   }
 
@@ -71,7 +79,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
       exerciseName: ex['name'] ?? '',
       currentSet: 1,
       totalSets: totalSets,
-      elapsedSeconds: 0,
+      sessionStart: _sessionStart,
     );
   }
 
@@ -82,22 +90,22 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
     final resting = isResting ?? (_phase == _Phase.resting);
     LiveActivityService.update(
       isResting: resting,
-      restRemaining: resting ? _restRemaining : 0,
-      restTotal: resting ? _restTime : 0,
-      elapsedSeconds: _elapsed,
+      restEndTime: resting ? _restEndTime : null,
+      sessionStart: _sessionStart,
       currentSet: _currentSetIdx + 1,
       totalSets: totalSets,
     );
   }
 
   void _buildSets() {
-    final exercises = _exercises;
-    _sets = exercises.map((ex) {
+    _exerciseOrder = List<dynamic>.from(
+        widget.routine['exercises'] as List<dynamic>? ?? []);
+    _sets = _exerciseOrder.map((ex) {
       final n = (ex['pivot']['sets'] as num).toInt();
       return List.generate(n, (_) => {'done': false, 'weight': ''});
     }).toList();
 
-    _controllers = exercises.map((ex) {
+    _controllers = _exerciseOrder.map((ex) {
       final n = (ex['pivot']['sets'] as num).toInt();
       return List.generate(n, (_) => TextEditingController());
     }).toList();
@@ -137,8 +145,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
   }
 
   // ── Helpers ───────────────────────────────────────────────────────────────
-  List<dynamic> get _exercises =>
-      widget.routine['exercises'] as List<dynamic>? ?? [];
+  List<dynamic> get _exercises => _exerciseOrder;
 
   dynamic get _currentEx => _exercises[_currentExIdx];
 
@@ -251,6 +258,7 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
       _restTime = (_restTime + delta).clamp(5, 300);
       _restEndTime = DateTime.now().add(Duration(seconds: newRemaining));
     });
+    _updateLiveActivity(isResting: true);
   }
 
   void _advanceSet() {
@@ -296,6 +304,35 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
         _sets[_currentExIdx][_currentSetIdx]['done'] = false;
       }
     });
+  }
+
+  // ── Reordenar ejercicios pendientes ───────────────────────────────────────
+  void _showReorderSheet() {
+    // Solo ejercicios que aún no empezaron (después del actual)
+    final pendingStart = _currentExIdx + 1;
+    if (pendingStart >= _exercises.length) return;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (_) => _ReorderSheet(
+        exercises: _exercises,
+        lockedUntil: pendingStart,
+        onReorder: (from, to) {
+          // from/to son índices absolutos dentro de _exercises
+          setState(() {
+            final exItem = _exerciseOrder.removeAt(from);
+            _exerciseOrder.insert(to, exItem);
+            final setsItem = _sets.removeAt(from);
+            _sets.insert(to, setsItem);
+            final ctrlItem = _controllers.removeAt(from);
+            _controllers.insert(to, ctrlItem);
+          });
+        },
+      ),
+    );
   }
 
   // ── Build ─────────────────────────────────────────────────────────────────
@@ -374,6 +411,21 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
               overflow: TextOverflow.ellipsis,
             ),
           ),
+          if (_currentExIdx + 1 < _exercises.length && _phase != _Phase.finished)
+            GestureDetector(
+              onTap: _showReorderSheet,
+              child: Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.surface,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.swap_vert, size: 18, color: Colors.grey),
+              ),
+            )
+          else
+            const SizedBox(width: 36),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
@@ -988,6 +1040,114 @@ class _TrainingSessionScreenState extends State<TrainingSessionScreen>
             );
           }),
         ],
+      ),
+    );
+  }
+}
+
+// ── Bottom sheet para reordenar ejercicios ────────────────────────────────────
+
+class _ReorderSheet extends StatefulWidget {
+  final List<dynamic> exercises;
+  final int lockedUntil; // índices < lockedUntil no se pueden mover
+  final void Function(int from, int to) onReorder;
+
+  const _ReorderSheet({
+    required this.exercises,
+    required this.lockedUntil,
+    required this.onReorder,
+  });
+
+  @override
+  State<_ReorderSheet> createState() => _ReorderSheetState();
+}
+
+class _ReorderSheetState extends State<_ReorderSheet> {
+  late List<dynamic> _items;
+
+  @override
+  void initState() {
+    super.initState();
+    _items = List.from(widget.exercises);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+                width: 40, height: 4,
+                margin: const EdgeInsets.only(bottom: 16),
+                decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(2))),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('Reordenar ejercicios',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('LISTO',
+                      style: TextStyle(
+                          color: AppColors.primary, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              height: 340,
+              child: ReorderableListView.builder(
+                itemCount: _items.length,
+                onReorder: (oldIdx, newIdx) {
+                  // No permite mover ejercicios bloqueados
+                  if (oldIdx < widget.lockedUntil || newIdx <= widget.lockedUntil - 1) return;
+                  final adjustedNew = newIdx > oldIdx ? newIdx - 1 : newIdx;
+                  setState(() {
+                    final item = _items.removeAt(oldIdx);
+                    _items.insert(adjustedNew, item);
+                  });
+                  widget.onReorder(oldIdx, adjustedNew);
+                },
+                itemBuilder: (ctx, i) {
+                  final ex = _items[i];
+                  final locked = i < widget.lockedUntil;
+                  return ListTile(
+                    key: ValueKey(ex['id'] ?? i),
+                    leading: CircleAvatar(
+                      radius: 14,
+                      backgroundColor: locked
+                          ? AppColors.primary
+                          : AppColors.primary.withValues(alpha: 0.12),
+                      child: locked
+                          ? const Icon(Icons.check, size: 14, color: Colors.white)
+                          : Text('${i + 1}',
+                              style: const TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: AppColors.primary)),
+                    ),
+                    title: Text(ex['name'] ?? '',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w600,
+                            color: locked ? Colors.grey : null)),
+                    subtitle: Text(
+                      '${ex['pivot']['sets']} series × ${ex['pivot']['reps'] ?? 0} reps',
+                      style: const TextStyle(fontSize: 11),
+                    ),
+                    trailing: locked
+                        ? null
+                        : const Icon(Icons.drag_handle, color: Colors.grey),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

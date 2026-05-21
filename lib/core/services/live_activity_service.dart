@@ -12,7 +12,7 @@ class LiveActivityService {
     required String exerciseName,
     required int currentSet,
     required int totalSets,
-    required int elapsedSeconds,
+    required DateTime sessionStart,
   }) async {
     if (!_supported) return;
     try {
@@ -21,7 +21,7 @@ class LiveActivityService {
         'exerciseName': exerciseName,
         'currentSet': currentSet,
         'totalSets': totalSets,
-        'elapsedSeconds': elapsedSeconds,
+        'sessionStartMillis': sessionStart.millisecondsSinceEpoch.toDouble(),
       });
     } on PlatformException catch (e) {
       debugPrint('[LiveActivity] start error: $e');
@@ -30,9 +30,8 @@ class LiveActivityService {
 
   static Future<void> update({
     required bool isResting,
-    required int restRemaining,
-    required int restTotal,
-    required int elapsedSeconds,
+    DateTime? restEndTime,
+    required DateTime sessionStart,
     required int currentSet,
     required int totalSets,
   }) async {
@@ -40,9 +39,8 @@ class LiveActivityService {
     try {
       await _channel.invokeMethod('updateActivity', {
         'isResting': isResting,
-        'restRemaining': restRemaining,
-        'restTotal': restTotal,
-        'elapsedSeconds': elapsedSeconds,
+        'restEndMillis': restEndTime?.millisecondsSinceEpoch.toDouble(),
+        'sessionStartMillis': sessionStart.millisecondsSinceEpoch.toDouble(),
         'currentSet': currentSet,
         'totalSets': totalSets,
       });
