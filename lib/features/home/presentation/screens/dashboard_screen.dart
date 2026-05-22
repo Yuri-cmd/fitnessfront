@@ -421,25 +421,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
   // ─── Diálogos ─────────────────────────────────────────────────────────────
 
   void _showDeleteAccountDialog(BuildContext context) {
-    Get.dialog(AlertDialog(
-      title: const Text('Eliminar cuenta'),
-      content: const Text(
-        '¿Estás seguro? Esta acción es irreversible. '
-        'Se eliminarán todos tus datos permanentemente.',
-      ),
-      actions: [
-        TextButton(onPressed: Get.back, child: const Text('CANCELAR')),
-        ElevatedButton(
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-          onPressed: () async {
-            Get.back();
-            await Get.find<AuthController>().deleteAccount();
-          },
-          child: const Text('ELIMINAR',
-              style: TextStyle(color: Colors.white)),
+    final confirmController = TextEditingController();
+    final confirmed = false.obs;
+
+    Get.dialog(
+      barrierDismissible: false,
+      AlertDialog(
+        title: const Text('Eliminar cuenta'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Esta acción es irreversible. Escribe ELIMINAR para confirmar:',
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: confirmController,
+              decoration: const InputDecoration(
+                hintText: 'ELIMINAR',
+                border: OutlineInputBorder(),
+              ),
+              onChanged: (v) => confirmed.value = v.trim() == 'ELIMINAR',
+            ),
+          ],
         ),
-      ],
-    ));
+        actions: [
+          TextButton(
+            onPressed: () {
+              confirmController.dispose();
+              Get.back();
+            },
+            child: const Text('CANCELAR'),
+          ),
+          Obx(() => ElevatedButton(
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+                onPressed: confirmed.value
+                    ? () async {
+                        confirmController.dispose();
+                        Get.back();
+                        await Get.find<AuthController>().deleteAccount();
+                      }
+                    : null,
+                child: const Text('ELIMINAR',
+                    style: TextStyle(color: Colors.white)),
+              )),
+        ],
+      ),
+    );
   }
 
   void _showUpdateProfileDialog(BuildContext context) {

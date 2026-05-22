@@ -46,6 +46,12 @@ class AuthController extends GetxController {
     await prefs.remove(AppConstants.userNameKey);
     isAuthenticated.value = false;
     userName.value = 'Atleta';
+    Get.snackbar(
+      'Sesión expirada',
+      'Tu sesión expiró. Por favor vuelve a iniciar sesión.',
+      duration: const Duration(seconds: 4),
+      snackPosition: SnackPosition.BOTTOM,
+    );
   }
 
   Future<void> checkAuth() async {
