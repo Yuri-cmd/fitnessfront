@@ -12,10 +12,16 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
       final ex = controller.currentEx;
       if (ex == null) return const SizedBox();
 
-      final numSets = ex.pivot!.sets;
-      final reps = ex.pivot!.reps;
+      final pivot = ex.pivot!;
+      final numWarmup = pivot.warmupSets;
+      final numWorking = pivot.sets;
+      final totalSets = pivot.totalSets;
       final currentExIdx = controller.currentExIdx.value;
       final currentSetIdx = controller.currentSetIdx.value;
+      final isWarmup = controller.isCurrentSetWarmup;
+
+      final warmupNum = isWarmup ? currentSetIdx + 1 : 0;
+      final workingNum = isWarmup ? 0 : currentSetIdx - numWarmup + 1;
 
       return Column(
         children: [
@@ -38,12 +44,41 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        'EJERCICIO ${currentExIdx + 1} DE ${controller.exercises.length}',
-                        style: const TextStyle(
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                            color: AppColors.primary),
+                      Row(
+                        children: [
+                          Text(
+                            'EJERCICIO ${currentExIdx + 1} DE ${controller.exercises.length}',
+                            style: const TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.primary),
+                          ),
+                          if (numWarmup > 0) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: isWarmup
+                                    ? Colors.orange.withValues(alpha: 0.15)
+                                    : AppColors.primary.withValues(alpha: 0.1),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isWarmup
+                                    ? 'APROX. $warmupNum/$numWarmup'
+                                    : 'EFECTIVA $workingNum/$numWorking',
+                                style: TextStyle(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: isWarmup
+                                      ? Colors.orange.shade700
+                                      : AppColors.primary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -60,24 +95,28 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                 ),
                 const Divider(height: 1, color: Color(0xFFF5F5F5)),
                 Padding(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 20, vertical: 20),
                   child: Column(
                     children: [
+                      // Set progress dots — warmup dots are smaller/orange
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
-                        children: List.generate(numSets, (i) {
+                        children: List.generate(totalSets, (i) {
+                          final isWarmupDot = i < numWarmup;
                           final isCurSet = i == currentSetIdx;
                           final isDoneSet =
                               controller.sets[currentExIdx][i]['done'] == true;
                           return AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
                             margin: const EdgeInsets.symmetric(horizontal: 3),
-                            height: 10,
-                            width: isCurSet ? 28 : 10,
+                            height: isWarmupDot ? 7 : 10,
+                            width: isCurSet ? 28 : (isWarmupDot ? 7 : 10),
                             decoration: BoxDecoration(
                               color: isDoneSet || isCurSet
-                                  ? AppColors.primary
+                                  ? (isWarmupDot
+                                      ? Colors.orange.withValues(alpha: 0.65)
+                                      : AppColors.primary)
                                   : Theme.of(context)
                                       .colorScheme
                                       .surfaceContainerHighest,
@@ -88,29 +127,48 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'SERIE ${currentSetIdx + 1} DE $numSets',
-                        style: const TextStyle(
+                        isWarmup
+                            ? 'APROX. $warmupNum DE $numWarmup'
+                            : 'SERIE $workingNum DE $numWorking',
+                        style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
-                            color: Colors.grey),
+                            color: isWarmup
+                                ? Colors.orange.shade600
+                                : Colors.grey),
                       ),
                       const SizedBox(height: 16),
+                      // Reps display
                       Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.baseline,
                         textBaseline: TextBaseline.alphabetic,
                         children: [
                           Text(
-                            '$reps',
+                            isWarmup
+                                ? (pivot.warmupReps ?? '10-15')
+                                : pivot.repsDisplay,
                             style: const TextStyle(
                                 fontSize: 64, fontWeight: FontWeight.w900),
                           ),
                           const SizedBox(width: 8),
                           const Text('reps',
-                              style:
-                                  TextStyle(fontSize: 20, color: Colors.grey)),
+                              style: TextStyle(
+                                  fontSize: 20, color: Colors.grey)),
                         ],
                       ),
+                      if (isWarmup)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(
+                            'PESO LIVIANO – SIN LLEGAR AL FALLO',
+                            style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.orange.shade600,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 0.5),
+                          ),
+                        ),
                       const SizedBox(height: 16),
                       Stack(
                         alignment: Alignment.centerRight,
@@ -118,8 +176,9 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                           TextField(
                             controller: controller
                                 .controllers[currentExIdx][currentSetIdx],
-                            keyboardType: const TextInputType.numberWithOptions(
-                                decimal: true),
+                            keyboardType:
+                                const TextInputType.numberWithOptions(
+                                    decimal: true),
                             textAlign: TextAlign.center,
                             style: const TextStyle(
                                 fontSize: 36, fontWeight: FontWeight.w900),
@@ -144,8 +203,11 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                               ),
                               focusedBorder: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(16),
-                                borderSide: const BorderSide(
-                                    color: AppColors.primary, width: 2),
+                                borderSide: BorderSide(
+                                    color: isWarmup
+                                        ? Colors.orange
+                                        : AppColors.primary,
+                                    width: 2),
                               ),
                               filled: true,
                               fillColor: Theme.of(context)
@@ -165,31 +227,37 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                       ),
                       const SizedBox(height: 6),
                       const Text('peso utilizado (opcional)',
-                          style: TextStyle(fontSize: 11, color: Colors.grey)),
+                          style:
+                              TextStyle(fontSize: 11, color: Colors.grey)),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: controller.completeSet,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
+                            backgroundColor: isWarmup
+                                ? Colors.orange.shade600
+                                : AppColors.primary,
                             foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 18),
+                            padding:
+                                const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(20)),
                             elevation: 0,
-                            shadowColor:
-                                AppColors.primary.withValues(alpha: 0.4),
                           ),
-                          child: const Row(
+                          child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check, size: 20),
-                              SizedBox(width: 8),
-                              Text('COMPLETAR SERIE',
-                                  style: TextStyle(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w900)),
+                              const Icon(Icons.check, size: 20),
+                              const SizedBox(width: 8),
+                              Text(
+                                isWarmup
+                                    ? 'COMPLETAR APROX.'
+                                    : 'COMPLETAR SERIE',
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w900),
+                              ),
                             ],
                           ),
                         ),
@@ -199,8 +267,9 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           TextButton.icon(
-                            onPressed:
-                                controller.canGoBack ? controller.goBack : null,
+                            onPressed: controller.canGoBack
+                                ? controller.goBack
+                                : null,
                             icon: const Icon(Icons.undo, size: 14),
                             label: const Text('Anterior'),
                             style: TextButton.styleFrom(
@@ -242,7 +311,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
       ),
       child: Column(

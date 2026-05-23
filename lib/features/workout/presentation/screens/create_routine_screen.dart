@@ -31,6 +31,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           'name': ex.name,
           'sets': ex.pivot?.sets ?? 3,
           'reps': ex.pivot?.reps ?? 12,
+          'reps_max': ex.pivot?.repsMax,
+          'warmup_sets': ex.pivot?.warmupSets ?? 0,
+          'warmup_reps': ex.pivot?.warmupReps,
         });
       }
     }
@@ -83,9 +86,17 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Expanded(
               child: _exercises.isEmpty
                   ? const _EmptyExercises()
-                  : ListView.builder(
+                  : ReorderableListView.builder(
                       itemCount: _exercises.length,
+                      onReorder: (oldIdx, newIdx) {
+                        setState(() {
+                          if (newIdx > oldIdx) newIdx--;
+                          final item = _exercises.removeAt(oldIdx);
+                          _exercises.insert(newIdx, item);
+                        });
+                      },
                       itemBuilder: (_, i) => _ExerciseTile(
+                        key: ValueKey(_exercises[i]['exercise_id']),
                         exercise: _exercises[i],
                         onEdit: () => _editExercise(i),
                         onDelete: () =>
@@ -120,23 +131,78 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     final ex = _exercises[index];
     final setsCtrl = TextEditingController(text: ex['sets'].toString());
     final repsCtrl = TextEditingController(text: ex['reps'].toString());
+    final repsMaxCtrl =
+        TextEditingController(text: ex['reps_max']?.toString() ?? '');
+    final warmupSetsCtrl =
+        TextEditingController(text: (ex['warmup_sets'] ?? 0).toString());
+    final warmupRepsCtrl =
+        TextEditingController(text: ex['warmup_reps'] ?? '');
+
     Get.dialog(AlertDialog(
       title: Text('EDITAR: ${ex['name']}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: setsCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Series'),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: repsCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Repeticiones'),
-          ),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Working sets
+            const _SectionLabel('SERIES EFECTIVAS'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: setsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Series'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: repsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(labelText: 'Reps mín'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: repsMaxCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Reps máx', hintText: 'opc.'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            // Warmup sets
+            const _SectionLabel('SERIES DE APROXIMACIÓN'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: warmupSetsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Series'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: warmupRepsCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Reps (rango)',
+                      hintText: 'ej. 10-15',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(onPressed: Get.back, child: const Text('CANCELAR')),
@@ -147,6 +213,14 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   int.tryParse(setsCtrl.text) ?? ex['sets'];
               _exercises[index]['reps'] =
                   int.tryParse(repsCtrl.text) ?? ex['reps'];
+              _exercises[index]['reps_max'] =
+                  int.tryParse(repsMaxCtrl.text);
+              _exercises[index]['warmup_sets'] =
+                  int.tryParse(warmupSetsCtrl.text) ?? 0;
+              _exercises[index]['warmup_reps'] =
+                  warmupRepsCtrl.text.trim().isEmpty
+                      ? null
+                      : warmupRepsCtrl.text.trim();
             });
             Get.back();
           },
@@ -169,8 +243,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Get.back();
           },
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.alert),
-          child: const Text('ELIMINAR',
-              style: TextStyle(color: Colors.white)),
+          child:
+              const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
         ),
       ],
     ));
@@ -185,7 +259,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       return;
     }
     final success = _isEditing
-        ? await _c.updateRoutine(widget.routine!.id, _nameCtrl.text, _exercises)
+        ? await _c.updateRoutine(
+            widget.routine!.id, _nameCtrl.text, _exercises)
         : await _c.createRoutine(_nameCtrl.text, _exercises);
     if (success) {
       Get.back();
@@ -198,7 +273,25 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   }
 }
 
-// ── Widgets privados ──────────────────────────────────────────────────────────
+// ── Private widgets ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+              letterSpacing: 1)),
+    );
+  }
+}
 
 class _EmptyExercises extends StatelessWidget {
   const _EmptyExercises();
@@ -226,6 +319,7 @@ class _ExerciseTile extends StatelessWidget {
   final VoidCallback onDelete;
 
   const _ExerciseTile({
+    super.key,
     required this.exercise,
     required this.onEdit,
     required this.onDelete,
@@ -233,18 +327,28 @@ class _ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final warmupSets = (exercise['warmup_sets'] as int?) ?? 0;
+    final reps = exercise['reps'] as int;
+    final repsMax = exercise['reps_max'] as int?;
+    final repsDisplay = repsMax != null ? '$reps-$repsMax' : '$reps';
+    final warmupLabel =
+        warmupSets > 0 ? '$warmupSets aprox. + ' : '';
+    final subtitle =
+        '$warmupLabel${exercise['sets']} series × $repsDisplay reps';
+
     return Card(
       child: ListTile(
         onTap: onEdit,
+        leading: const Icon(Icons.drag_handle, color: Colors.grey),
         title: Text(exercise['name'] ?? 'S/N',
             style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle:
-            Text('${exercise['sets']} series x ${exercise['reps']} reps'),
+        subtitle: Text(subtitle),
         trailing: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
-              icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
+              icon:
+                  const Icon(Icons.edit_outlined, color: AppColors.primary),
               onPressed: onEdit,
             ),
             IconButton(

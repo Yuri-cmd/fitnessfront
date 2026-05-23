@@ -9,8 +9,8 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
   @override
   Widget build(BuildContext context) {
     return Obx(() {
-      final restPct = (controller.restTime.value - controller.restRemaining.value) /
-          controller.restTime.value.clamp(1, controller.restTime.value);
+      final restPct = (controller.currentRestDuration.value - controller.restRemaining.value) /
+          controller.currentRestDuration.value.clamp(1, controller.currentRestDuration.value);
 
       return Container(
         width: double.infinity,
@@ -40,7 +40,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                   const Icon(Icons.check, size: 14, color: AppColors.primary),
                   const SizedBox(width: 6),
                   Text(
-                    'Serie ${controller.completedSetNum.value} completada',
+                    controller.completedSetLabel,
                     style: const TextStyle(
                         color: AppColors.primary, fontWeight: FontWeight.bold),
                   ),
@@ -48,12 +48,15 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
               ),
             ),
             const SizedBox(height: 20),
-            const Text('DESCANSANDO',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                    letterSpacing: 2)),
+            Text(
+              controller.isWarmupRest.value
+                  ? 'DESCANSO APROX.'
+                  : 'DESCANSANDO',
+              style: const TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey,
+                  letterSpacing: 2)),
             const SizedBox(height: 8),
             Text(
               controller.formatTime(controller.restRemaining.value),

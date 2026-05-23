@@ -14,11 +14,14 @@ class WorkoutController extends GetxController {
   WorkoutController(this._workoutService, this._healthService);
 
   final routines = <Routine>[].obs;
+  final archivedRoutines = <Routine>[].obs;
   final availableExercises = <Exercise>[].obs;
   final workoutLogs = <WorkoutLog>[].obs;
   final weeklyProgress = <int, bool>{}.obs;
   final isLoading = false.obs;
   final isLoadingExercises = false.obs;
+  final isLoadingArchived = false.obs;
+  final showArchived = false.obs;
   final selectedDate = DateTime.now().obs;
 
   @override
@@ -158,6 +161,49 @@ class WorkoutController extends GetxController {
       await loadRoutines();
     } catch (e) {
       debugPrint(e.toString());
+    }
+  }
+
+  Future<void> archiveRoutine(int id) async {
+    try {
+      await _workoutService.archiveRoutine(id);
+      await loadRoutines();
+      if (showArchived.value) await loadArchivedRoutines();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> unarchiveRoutine(int id) async {
+    try {
+      await _workoutService.unarchiveRoutine(id);
+      await loadRoutines();
+      await loadArchivedRoutines();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> loadArchivedRoutines() async {
+    isLoadingArchived.value = true;
+    try {
+      final response = await _workoutService.getArchivedRoutines();
+      if (response.statusCode == 200) {
+        archivedRoutines.value = (response.data as List<dynamic>)
+            .map((e) => Routine.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    } finally {
+      isLoadingArchived.value = false;
+    }
+  }
+
+  void toggleArchived() {
+    showArchived.value = !showArchived.value;
+    if (showArchived.value && archivedRoutines.isEmpty) {
+      loadArchivedRoutines();
     }
   }
 

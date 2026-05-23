@@ -15,21 +15,20 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
   TrainingSessionController({required this.routine});
 
-  // ── Timers & Audio ────────────────────────────────────────────────────────
+  // ── Timers & Audio ─────────────────────────────────────────────────────────
   DateTime? _sessionStart;
   Timer? _timer;
-
   DateTime? _restEndTime;
   Timer? _restTimer;
-
   final _player = AudioPlayer();
 
-  // ── Estado Reactivo ───────────────────────────────────────────────────────
+  // ── Reactive state ─────────────────────────────────────────────────────────
   final phase = TrainingPhase.ready.obs;
-
   final elapsed = 0.obs;
   final restRemaining = 0.obs;
-  final restTime = 90.obs;
+  final restTime = 180.obs;            // working set rest (user-adjustable, default 3 min)
+  final currentRestDuration = 180.obs; // actual duration of the current rest period
+  final isWarmupRest = false.obs;
 
   final currentExIdx = 0.obs;
   final currentSetIdx = 0.obs;
@@ -37,12 +36,12 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
   final exerciseOrder = <Exercise>[].obs;
 
-  // _sets[exIdx][setIdx] = {'done': bool, 'weight': ''}
+  // sets[exIdx][setIdx] = {'done': bool, 'weight': '', 'type': 'warmup'|'working'}
   final sets = <List<Map<String, dynamic>>>[].obs;
 
   late List<List<TextEditingController>> controllers;
 
-  // ── Init / dispose ────────────────────────────────────────────────────────
+  // ── Init / dispose ─────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
@@ -69,11 +68,9 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     if (state == AppLifecycleState.resumed) {
       if (phase.value == TrainingPhase.resting && restRemaining.value <= 0) {
         skipRest();
-      } else {
-        if (phase.value == TrainingPhase.resting && _restEndTime != null) {
-          restRemaining.value =
-              _restEndTime!.difference(DateTime.now()).inSeconds.clamp(0, 9999);
-        }
+      } else if (phase.value == TrainingPhase.resting && _restEndTime != null) {
+        restRemaining.value =
+            _restEndTime!.difference(DateTime.now()).inSeconds.clamp(0, 9999);
       }
     }
   }
@@ -85,7 +82,6 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     _restTimer?.cancel();
     _player.dispose();
     LiveActivityService.end();
-
     for (final row in controllers) {
       for (final c in row) {
         c.dispose();
@@ -94,29 +90,41 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     super.onClose();
   }
 
-  // ── Inicialización ────────────────────────────────────────────────────────
+  // ── Build sets (warmup first, then working) ────────────────────────────────
   void _buildSets() {
     exerciseOrder.value = List<Exercise>.from(routine.exercises);
 
     sets.value = exerciseOrder.map((ex) {
-      final n = ex.pivot!.sets;
-      return List.generate(n, (_) => {'done': false, 'weight': ''});
+      final pivot = ex.pivot!;
+      final warmup = List.generate(
+        pivot.warmupSets,
+        (_) => <String, dynamic>{'done': false, 'weight': '', 'type': 'warmup'},
+      );
+      final working = List.generate(
+        pivot.sets,
+        (_) => <String, dynamic>{'done': false, 'weight': '', 'type': 'working'},
+      );
+      return [...warmup, ...working];
     }).toList();
 
     controllers = exerciseOrder.map((ex) {
-      final n = ex.pivot!.sets;
-      return List.generate(n, (_) => TextEditingController());
+      return List.generate(ex.pivot!.totalSets, (_) => TextEditingController());
     }).toList();
   }
 
-  // ── Helpers Visuales / Lógica ─────────────────────────────────────────────
+  // ── Computed properties ────────────────────────────────────────────────────
   List<Exercise> get exercises => exerciseOrder;
   Exercise? get currentEx =>
       exercises.isEmpty ? null : exercises[currentExIdx.value];
 
+  bool get isCurrentSetWarmup {
+    if (currentEx == null) return false;
+    return currentSetIdx.value < currentEx!.pivot!.warmupSets;
+  }
+
   bool get isLastSet {
     if (currentEx == null) return false;
-    return currentSetIdx.value >= currentEx!.pivot!.sets - 1;
+    return currentSetIdx.value >= currentEx!.pivot!.totalSets - 1;
   }
 
   bool get isLastEx => currentExIdx.value >= exercises.length - 1;
@@ -130,12 +138,26 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
   String get nextActionLabel {
     if (isLastSet) return isLastEx ? 'TERMINAR' : 'SIGUIENTE EJERCICIO';
-    return 'SIGUIENTE SERIE';
+    final nextIdx = currentSetIdx.value + 1;
+    final isNextWarmup =
+        currentEx != null && nextIdx < currentEx!.pivot!.warmupSets;
+    return isNextWarmup ? 'SIGUIENTE APROX.' : 'SIGUIENTE SERIE';
+  }
+
+  String get completedSetLabel {
+    if (isWarmupRest.value) {
+      return 'Aprox. ${completedSetNum.value} completada';
+    }
+    final warmupCount = currentEx?.pivot?.warmupSets ?? 0;
+    final workingNum = completedSetNum.value - warmupCount;
+    return 'Serie $workingNum completada';
   }
 
   double? exMaxWeight(int idx) {
     if (idx >= controllers.length) return null;
+    final warmupCount = exercises[idx].pivot!.warmupSets;
     final weights = controllers[idx]
+        .skip(warmupCount)
         .map((c) => double.tryParse(c.text.replaceAll(',', '.')) ?? 0.0)
         .where((w) => w > 0)
         .toList();
@@ -149,14 +171,17 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     return '$m:$sec';
   }
 
+  /// Only working sets are submitted; warmup sets are excluded from the log.
   List<Map<String, dynamic>> collectSetData() {
     final result = <Map<String, dynamic>>[];
     for (int i = 0; i < exercises.length; i++) {
       final ex = exercises[i];
-      for (int j = 0; j < sets[i].length; j++) {
+      final warmupCount = ex.pivot!.warmupSets;
+      int workingSetNum = 1;
+      for (int j = warmupCount; j < sets[i].length; j++) {
         result.add({
           'exercise_id': ex.id,
-          'set_number': j + 1,
+          'set_number': workingSetNum++,
           'reps_done': ex.pivot!.reps,
           'weight_kg':
               double.tryParse(controllers[i][j].text.replaceAll(',', '.')) ??
@@ -167,13 +192,13 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     return result;
   }
 
-  // ── Acciones de Sesión ────────────────────────────────────────────────────
+  // ── Session actions ────────────────────────────────────────────────────────
   void completeSet() {
     HapticFeedback.mediumImpact();
 
+    final wasWarmup = isCurrentSetWarmup;
     sets[currentExIdx.value][currentSetIdx.value]['done'] = true;
     sets.refresh();
-
     completedSetNum.value = currentSetIdx.value + 1;
 
     if (isLastOfAll) {
@@ -181,7 +206,11 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       LiveActivityService.end();
     } else {
       phase.value = TrainingPhase.resting;
-      _restEndTime = DateTime.now().add(Duration(seconds: restTime.value));
+      isWarmupRest.value = wasWarmup;
+      final restSecs = wasWarmup ? 60 : restTime.value;
+      currentRestDuration.value = restSecs;
+      restRemaining.value = restSecs;
+      _restEndTime = DateTime.now().add(Duration(seconds: restSecs));
       _startRestTimer();
       _updateLiveActivity(isResting: true);
     }
@@ -198,6 +227,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   void skipRest() {
     _restTimer?.cancel();
     _restTimer = null;
+    isWarmupRest.value = false;
     phase.value = TrainingPhase.ready;
     _advanceSet();
     _updateLiveActivity(isResting: false);
@@ -209,10 +239,14 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
         : restRemaining.value;
 
     final newRemaining = (currentRemaining + delta).clamp(5, 300);
-    restTime.value = (restTime.value + delta).clamp(5, 300);
+    // Don't persist adjustment to working rest while in a warmup rest
+    if (!isWarmupRest.value) {
+      restTime.value = (restTime.value + delta).clamp(5, 300);
+    }
+    currentRestDuration.value =
+        (currentRestDuration.value + delta).clamp(5, 300);
     _restEndTime = DateTime.now().add(Duration(seconds: newRemaining));
     restRemaining.value = newRemaining;
-
     _updateLiveActivity(isResting: true);
   }
 
@@ -221,6 +255,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     if (phase.value == TrainingPhase.resting) {
       _restTimer?.cancel();
       _restTimer = null;
+      isWarmupRest.value = false;
       phase.value = TrainingPhase.ready;
       return;
     }
@@ -230,7 +265,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       currentSetIdx.value--;
     } else {
       currentExIdx.value--;
-      currentSetIdx.value = currentEx!.pivot!.sets - 1;
+      currentSetIdx.value = currentEx!.pivot!.totalSets - 1;
       sets[currentExIdx.value][currentSetIdx.value]['done'] = false;
     }
     sets.refresh();
@@ -250,7 +285,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     sets.refresh();
   }
 
-  // ── Internos ──────────────────────────────────────────────────────────────
+  // ── Internal ───────────────────────────────────────────────────────────────
   void _advanceSet() {
     if (!isLastSet) {
       currentSetIdx.value++;
@@ -268,7 +303,6 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
         restRemaining.value =
             _restEndTime!.difference(DateTime.now()).inSeconds.clamp(0, 9999);
       }
-
       if (restRemaining.value <= 0) {
         _restTimer?.cancel();
         _playRestDone();
@@ -300,7 +334,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     } catch (_) {}
   }
 
-  // ── Live Activity ─────────────────────────────────────────────────────────
+  // ── Live Activity ──────────────────────────────────────────────────────────
   void _startLiveActivity() {
     if (exercises.isEmpty) return;
     final ex = exercises[0];
@@ -308,7 +342,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       routineName: routine.name,
       exerciseName: ex.name,
       currentSet: 1,
-      totalSets: ex.pivot!.sets,
+      totalSets: ex.pivot!.totalSets,
       sessionStart: _sessionStart!,
     );
   }
@@ -318,11 +352,12 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     final ex = currentEx!;
     final resting = isResting ?? (phase.value == TrainingPhase.resting);
     LiveActivityService.update(
+      exerciseName: ex.name,
       isResting: resting,
       restEndTime: resting ? _restEndTime : null,
       sessionStart: _sessionStart!,
       currentSet: currentSetIdx.value + 1,
-      totalSets: ex.pivot!.sets,
+      totalSets: ex.pivot!.totalSets,
     );
   }
 }

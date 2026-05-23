@@ -50,6 +50,18 @@ class WorkoutService {
     return await _dio.delete('/routines/$id');
   }
 
+  Future<Response> archiveRoutine(int id) async {
+    return await _dio.post('/routines/$id/archive');
+  }
+
+  Future<Response> unarchiveRoutine(int id) async {
+    return await _dio.post('/routines/$id/unarchive');
+  }
+
+  Future<Response> getArchivedRoutines() async {
+    return await _dio.get('/routines/archived');
+  }
+
   Future<Response> getWeeklyProgress() async {
     return await _dio.get('/workouts/weekly-progress');
   }

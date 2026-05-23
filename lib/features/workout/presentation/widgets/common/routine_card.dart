@@ -7,6 +7,8 @@ class RoutineCard extends StatelessWidget {
   final bool isDoneToday;
   final VoidCallback onStart;
   final VoidCallback onEdit;
+  final VoidCallback? onArchive;
+  final VoidCallback? onUnarchive;
 
   const RoutineCard({
     super.key,
@@ -14,83 +16,213 @@ class RoutineCard extends StatelessWidget {
     required this.isDoneToday,
     required this.onStart,
     required this.onEdit,
+    this.onArchive,
+    this.onUnarchive,
   });
 
   @override
   Widget build(BuildContext context) {
+    final archived = routine.isArchived;
+    final color = archived
+        ? Colors.grey
+        : isDoneToday
+            ? AppColors.primary
+            : Colors.grey.shade600;
+
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
+      margin: const EdgeInsets.only(bottom: 12),
       child: ExpansionTile(
+        tilePadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+        childrenPadding: EdgeInsets.zero,
         leading: CircleAvatar(
-          backgroundColor:
-              isDoneToday ? AppColors.primary : Colors.grey.shade200,
+          radius: 20,
+          backgroundColor: archived
+              ? Colors.grey.shade200
+              : isDoneToday
+                  ? AppColors.primary.withValues(alpha: 0.15)
+                  : Colors.grey.shade100,
           child: Icon(
-            isDoneToday ? Icons.check : Icons.flash_on,
-            color: isDoneToday ? Colors.white : Colors.grey,
+            archived
+                ? Icons.archive_outlined
+                : isDoneToday
+                    ? Icons.check_rounded
+                    : Icons.flash_on_rounded,
+            size: 20,
+            color: color,
           ),
         ),
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        title: Text(
+          routine.name,
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 14,
+            color: archived ? Colors.grey : null,
+            height: 1.2,
+          ),
+        ),
+        subtitle: Padding(
+          padding: const EdgeInsets.only(top: 3),
+          child: Row(
+            children: [
+              Text(
+                '${routine.exercises.length} ejercicios',
+                style: TextStyle(
+                  fontSize: 11,
+                  color: archived ? Colors.grey.shade400 : Colors.grey.shade600,
+                ),
+              ),
+              if (!archived && isDoneToday) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.primary.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    '¡HECHA HOY!',
+                    style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Text(
-                routine.name,
-                style: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+            if (archived)
+              _SmallIconButton(
+                icon: Icons.unarchive_outlined,
+                color: AppColors.primary,
+                tooltip: 'Restaurar',
+                onPressed: onUnarchive,
+              )
+            else ...[
+              _SmallIconButton(
+                icon: Icons.archive_outlined,
+                color: Colors.grey,
+                tooltip: 'Archivar',
+                onPressed: onArchive,
+              ),
+              _SmallIconButton(
+                icon: Icons.edit_outlined,
+                color: AppColors.primary,
+                tooltip: 'Editar',
+                onPressed: onEdit,
+              ),
+            ],
+            const Icon(Icons.expand_more, size: 20, color: Colors.grey),
+          ],
+        ),
+        children: [
+          const Divider(height: 1),
+          ..._buildExerciseList(),
+          if (!archived)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(14, 8, 14, 14),
+              child: ElevatedButton(
+                onPressed: isDoneToday ? null : onStart,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor:
+                      isDoneToday ? Colors.grey.shade100 : AppColors.primary,
+                  minimumSize: const Size(double.infinity, 46),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                child: Text(
+                  isDoneToday ? 'YA ENTRENADO HOY' : '¡A ENTRENAR!',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            if (isDoneToday)
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        ],
+      ),
+    );
+  }
+
+  List<Widget> _buildExerciseList() {
+    return routine.exercises.map<Widget>((ex) {
+      final pivot = ex.pivot!;
+      final warmupLabel =
+          pivot.warmupSets > 0 ? '${pivot.warmupSets} aprox. + ' : '';
+      final detail =
+          '$warmupLabel${pivot.sets} series × ${pivot.repsDisplay} reps';
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(
+              width: 6,
+              height: 6,
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  '¡HECHA!',
-                  style: TextStyle(
-                    color: AppColors.textTitle,
-                    fontWeight: FontWeight.bold,
-                    fontSize: 10,
-                  ),
+                  color: AppColors.primary,
+                  shape: BoxShape.circle,
                 ),
               ),
-            IconButton(
-              icon: const Icon(Icons.edit_note_outlined,
-                  color: AppColors.primary),
-              onPressed: onEdit,
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    ex.name,
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    detail,
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: Colors.grey.shade600,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        subtitle: Text('${routine.exercises.length} EJERCICIOS'),
-        children: [
-          ...routine.exercises.map<Widget>(
-            (ex) => ListTile(
-              title: Text(ex.name),
-              subtitle: Text(
-                '${ex.pivot!.sets} series x ${ex.pivot!.reps} reps',
-              ),
-              trailing: const Icon(Icons.check_circle_outline),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: ElevatedButton(
-              onPressed: isDoneToday ? null : onStart,
-              style: ElevatedButton.styleFrom(
-                backgroundColor:
-                    isDoneToday ? Colors.grey.shade100 : AppColors.primary,
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: Text(
-                isDoneToday ? 'YA ENTRENADO HOY' : '¡A ENTRENAR!',
-              ),
-            ),
-          ),
-        ],
+      );
+    }).toList();
+  }
+}
+
+class _SmallIconButton extends StatelessWidget {
+  final IconData icon;
+  final Color color;
+  final String tooltip;
+  final VoidCallback? onPressed;
+
+  const _SmallIconButton({
+    required this.icon,
+    required this.color,
+    required this.tooltip,
+    this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(20),
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: Icon(icon, size: 18, color: color),
+        ),
       ),
     );
   }

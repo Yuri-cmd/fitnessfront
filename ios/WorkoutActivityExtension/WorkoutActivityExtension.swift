@@ -6,15 +6,15 @@ import SwiftUI
 
 struct WorkoutActivityAttributes: ActivityAttributes {
     public struct ContentState: Codable, Hashable {
+        var exerciseName: String
         var isResting: Bool
-        var restEndDate: Date?      // nil cuando no está descansando
-        var sessionStartDate: Date  // para calcular el tiempo transcurrido
+        var restEndDate: Date?
+        var sessionStartDate: Date
         var currentSet: Int
         var totalSets: Int
     }
 
     var routineName: String
-    var exerciseName: String
 }
 
 // ── Colores ───────────────────────────────────────────────────────────────────
@@ -38,7 +38,7 @@ struct LockScreenView: View {
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundColor(.secondary)
                     .lineLimit(1)
-                Text(attrs.exerciseName)
+                Text(state.exerciseName)
                     .font(.system(size: 14, weight: .bold))
                     .foregroundColor(.primary)
                     .lineLimit(1)
@@ -51,7 +51,6 @@ struct LockScreenView: View {
 
             if state.isResting, let restEnd = state.restEndDate {
                 VStack(spacing: 0) {
-                    // SwiftUI cuenta hacia atrás automáticamente — no necesita updates
                     Text(timerInterval: Date.now...restEnd, countsDown: true)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(primary)
@@ -62,7 +61,6 @@ struct LockScreenView: View {
                 }
             } else {
                 VStack(spacing: 0) {
-                    // SwiftUI cuenta hacia arriba automáticamente
                     Text(state.sessionStartDate, style: .timer)
                         .font(.system(size: 18, weight: .bold, design: .monospaced))
                         .foregroundColor(primary)
@@ -90,7 +88,7 @@ struct WorkoutActivityExtension: Widget {
         } dynamicIsland: { context in
             DynamicIsland {
                 DynamicIslandExpandedRegion(.leading) {
-                    Label(context.attributes.exerciseName, systemImage: "dumbbell.fill")
+                    Label(context.state.exerciseName, systemImage: "dumbbell.fill")
                         .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(primary)
                         .lineLimit(1)

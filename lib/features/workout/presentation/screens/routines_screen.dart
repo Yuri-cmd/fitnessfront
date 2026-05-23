@@ -115,27 +115,115 @@ class _RoutinesTab extends StatelessWidget {
       if (c.isLoading.value) {
         return const Center(child: CircularProgressIndicator());
       }
-      if (c.routines.isEmpty) {
-        return const WorkoutEmptyState(
+      if (c.routines.isEmpty && !c.showArchived.value) {
+        return WorkoutEmptyState(
           icon: Icons.fitness_center_outlined,
           title: 'No hay rutinas creadas',
           subtitle: 'Empieza creando tu primer plan de entrenamiento',
+          action: TextButton.icon(
+                  onPressed: c.toggleArchived,
+                  icon: const Icon(Icons.archive_outlined),
+                  label: const Text('VER ARCHIVADAS'),
+                ),
         );
       }
-      return ListView.builder(
-        padding: const EdgeInsets.all(20),
-        itemCount: c.routines.length,
-        itemBuilder: (_, i) {
-          final routine = c.routines[i];
-          return RoutineCard(
-            routine: routine,
-            isDoneToday: c.isDoneToday(routine),
-            onStart: () => onStart(routine),
-            onEdit: () => Get.to(() => CreateRoutineScreen(routine: routine)),
-          );
-        },
+      return ListView(
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 100),
+        children: [
+          // Active routines
+          ...c.routines.map((routine) => RoutineCard(
+                routine: routine,
+                isDoneToday: c.isDoneToday(routine),
+                onStart: () => onStart(routine),
+                onEdit: () =>
+                    Get.to(() => CreateRoutineScreen(routine: routine)),
+                onArchive: () => _confirmArchive(routine, c),
+              )),
+
+          // Archive toggle button
+          const SizedBox(height: 8),
+          OutlinedButton.icon(
+            onPressed: c.toggleArchived,
+            icon: Icon(c.showArchived.value
+                ? Icons.expand_less
+                : Icons.archive_outlined),
+            label: Text(c.showArchived.value
+                ? 'OCULTAR ARCHIVADAS'
+                : 'VER RUTINAS ARCHIVADAS'),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: Colors.grey,
+              side: const BorderSide(color: Colors.grey),
+              minimumSize: const Size(double.infinity, 44),
+            ),
+          ),
+
+          // Archived routines section
+          if (c.showArchived.value) ...[
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                const Icon(Icons.archive_outlined, size: 16, color: Colors.grey),
+                const SizedBox(width: 6),
+                const Text(
+                  'ARCHIVADAS',
+                  style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey,
+                      letterSpacing: 1),
+                ),
+                const Spacer(),
+                if (c.isLoadingArchived.value)
+                  const SizedBox(
+                    width: 14,
+                    height: 14,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (!c.isLoadingArchived.value && c.archivedRoutines.isEmpty)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 16),
+                child: Center(
+                  child: Text(
+                    'No hay rutinas archivadas',
+                    style: TextStyle(color: Colors.grey),
+                  ),
+                ),
+              )
+            else
+              ...c.archivedRoutines.map((routine) => RoutineCard(
+                    routine: routine,
+                    isDoneToday: false,
+                    onStart: () {},
+                    onEdit: () =>
+                        Get.to(() => CreateRoutineScreen(routine: routine)),
+                    onUnarchive: () => c.unarchiveRoutine(routine.id),
+                  )),
+          ],
+        ],
       );
     });
+  }
+
+  void _confirmArchive(Routine routine, WorkoutController c) {
+    Get.dialog(AlertDialog(
+      title: const Text('¿Archivar rutina?'),
+      content: Text(
+        '"${routine.name}" se moverá a archivadas. Puedes restaurarla cuando quieras.',
+      ),
+      actions: [
+        TextButton(onPressed: Get.back, child: const Text('CANCELAR')),
+        ElevatedButton(
+          onPressed: () {
+            Get.back();
+            c.archiveRoutine(routine.id);
+          },
+          child: const Text('ARCHIVAR'),
+        ),
+      ],
+    ));
   }
 }
 

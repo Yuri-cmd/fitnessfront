@@ -29,6 +29,7 @@ class LiveActivityService {
   }
 
   static Future<void> update({
+    required String exerciseName,
     required bool isResting,
     DateTime? restEndTime,
     required DateTime sessionStart,
@@ -38,6 +39,7 @@ class LiveActivityService {
     if (!_supported) return;
     try {
       await _channel.invokeMethod('updateActivity', {
+        'exerciseName': exerciseName,
         'isResting': isResting,
         'restEndMillis': restEndTime?.millisecondsSinceEpoch.toDouble(),
         'sessionStartMillis': sessionStart.millisecondsSinceEpoch.toDouble(),
