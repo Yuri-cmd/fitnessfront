@@ -102,6 +102,16 @@ class TrainingSessionScreen extends StatelessWidget {
             ),
             icon: const Icon(Icons.reorder),
           ),
+          IconButton(
+            onPressed: () async {
+              final leave = await _confirmExit();
+              if (leave == true) {
+                Get.delete<TrainingSessionController>();
+                Get.back(result: null);
+              }
+            },
+            icon: const Icon(Icons.close),
+          ),
         ],
       ),
     );
