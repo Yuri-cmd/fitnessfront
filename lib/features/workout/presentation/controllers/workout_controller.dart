@@ -5,6 +5,7 @@ import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart'
 import 'package:fit_tracker_app/features/workout/data/models/workout_log_model.dart';
 import 'package:fit_tracker_app/features/workout/data/services/workout_service.dart';
 import 'package:fit_tracker_app/core/services/health_service.dart';
+import 'package:fit_tracker_app/core/services/app_flags.dart';
 
 class WorkoutController extends GetxController {
   final WorkoutService _workoutService;
@@ -168,12 +169,20 @@ class WorkoutController extends GetxController {
     final start = startTime ?? DateTime.now();
     try {
       await _workoutService.completeRoutine(id, sets);
+      _healthService.saveWorkout(start: start, end: DateTime.now());
+    } catch (e) {
+      debugPrint('completeRoutine save failed: $e');
+      return;
+    }
+    // Suppress 401→logout for background reloads: a transient server error
+    // after a successful save shouldn't kick the user out mid-session.
+    AppFlags.suppressLogout(const Duration(seconds: 30));
+    try {
       await loadRoutines();
       await loadWeeklyProgress();
       await loadWorkoutHistory();
-      _healthService.saveWorkout(start: start, end: DateTime.now());
     } catch (e) {
-      debugPrint(e.toString());
+      debugPrint('completeRoutine reload failed: $e');
     }
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fit_tracker_app/core/constants/app_constants.dart';
 import 'package:fit_tracker_app/core/services/auth_events.dart';
+import 'package:fit_tracker_app/core/services/app_flags.dart';
 
 class DioClient {
   late final Dio dio;
@@ -29,7 +30,9 @@ class DioClient {
       },
       onError: (e, handler) {
         debugPrint('HTTP ${e.response?.statusCode} → ${e.requestOptions.method} ${e.requestOptions.path}');
-        if (e.response?.statusCode == 401) {
+        final suppress = e.requestOptions.extra['suppressLogout'] == true ||
+            AppFlags.isLogoutSuppressed;
+        if (e.response?.statusCode == 401 && !suppress) {
           AuthEvents.notifyUnauthorized();
         }
         return handler.next(e);
