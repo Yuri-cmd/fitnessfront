@@ -27,7 +27,6 @@ class TrainingSessionScreen extends StatelessWidget {
         }
       },
       child: Scaffold(
-        backgroundColor: AppColors.background,
         body: SafeArea(
           child: Obx(() {
             if (controller.phase.value == TrainingPhase.finished) {
