@@ -167,6 +167,31 @@ class AuthController extends GetxController {
     userName.value = 'Atleta';
   }
 
+  Future<String?> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    try {
+      await _authService.changePassword(
+        currentPassword: currentPassword,
+        newPassword: newPassword,
+      );
+      return null; // null = éxito
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 422) {
+        final errors =
+            (e.response?.data as Map<String, dynamic>?)?['errors'] as Map?;
+        if (errors?['current_password'] != null) {
+          return 'La contraseña actual es incorrecta.';
+        }
+        return 'La nueva contraseña no cumple los requisitos.';
+      }
+      return 'Error de conexión. Intenta de nuevo.';
+    } catch (e) {
+      return 'Error inesperado. Intenta de nuevo.';
+    }
+  }
+
   Future<bool> deleteAccount() async {
     isLoading.value = true;
     try {

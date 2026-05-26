@@ -79,6 +79,27 @@ class _RoutinesScreenState extends State<RoutinesScreen>
   }
 
   void _startTraining(Routine routine) async {
+    final c = Get.find<WorkoutController>();
+    if (!c.isDoneToday(routine) && c.isDoneThisWeek(routine)) {
+      final confirmed = await Get.dialog<bool>(AlertDialog(
+        title: const Text('¿Repetir entrenamiento?'),
+        content: Text(
+          'Ya completaste "${routine.name}" esta semana. ¿Quieres volver a hacerlo?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Get.back(result: false),
+            child: const Text('CANCELAR'),
+          ),
+          ElevatedButton(
+            onPressed: () => Get.back(result: true),
+            child: const Text('SÍ, REPETIR'),
+          ),
+        ],
+      ));
+      if (confirmed != true) return;
+    }
+
     final result = await Get.to<dynamic>(
       () => TrainingSessionScreen(routine: routine),
     );
@@ -134,6 +155,7 @@ class _RoutinesTab extends StatelessWidget {
           ...c.routines.map((routine) => RoutineCard(
                 routine: routine,
                 isDoneToday: c.isDoneToday(routine),
+                isDoneThisWeek: c.isDoneThisWeek(routine),
                 onStart: () => onStart(routine),
                 onEdit: () =>
                     Get.to(() => CreateRoutineScreen(routine: routine)),

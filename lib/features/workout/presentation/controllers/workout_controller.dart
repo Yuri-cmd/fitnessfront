@@ -213,6 +213,10 @@ class WorkoutController extends GetxController {
     DateTime? startTime,
   ]) async {
     final start = startTime ?? DateTime.now();
+
+    // Optimistic update: marca la rutina como hecha de inmediato en la UI
+    workoutLogs.insert(0, WorkoutLog(routineId: id, completedAt: DateTime.now()));
+
     try {
       await _workoutService.completeRoutine(id, sets);
       _healthService.saveWorkout(start: start, end: DateTime.now());
@@ -277,6 +281,16 @@ class WorkoutController extends GetxController {
       final d = log.completedAt;
       final now = DateTime.now();
       return d.year == now.year && d.month == now.month && d.day == now.day;
+    });
+  }
+
+  bool isDoneThisWeek(Routine routine) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final weekStart = DateTime(monday.year, monday.month, monday.day);
+    return workoutLogs.any((log) {
+      if (log.routineId != routine.id) return false;
+      return !log.completedAt.isBefore(weekStart);
     });
   }
 }

@@ -3,8 +3,47 @@ import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/services/health_service.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
 
-class HealthSettingsScreen extends StatelessWidget {
+class HealthSettingsScreen extends StatefulWidget {
   const HealthSettingsScreen({super.key});
+
+  @override
+  State<HealthSettingsScreen> createState() => _HealthSettingsScreenState();
+}
+
+class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
+  bool _permissionsGranted = false;
+  bool _checking = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkPermissions();
+  }
+
+  Future<void> _checkPermissions() async {
+    final granted = await HealthService().hasPermissions();
+    if (mounted) {
+      setState(() {
+        _permissionsGranted = granted;
+        _checking = false;
+      });
+    }
+  }
+
+  Future<void> _requestPermissions() async {
+    final granted = await HealthService().requestPermissions();
+    if (mounted) {
+      setState(() => _permissionsGranted = granted);
+      if (granted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Permisos de Apple Health activados'),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -58,8 +97,7 @@ class HealthSettingsScreen extends StatelessWidget {
             icon: Icons.fitness_center_rounded,
             color: Color(0xFF34C759),
             label: 'Entrenamientos',
-            detail:
-                'Cada sesión completada se registra como entrenamiento de fuerza.',
+            detail: 'Cada sesión completada se registra como entrenamiento de fuerza.',
             access: 'Escritura',
           ),
           const _HealthDataTile(
@@ -77,8 +115,7 @@ class HealthSettingsScreen extends StatelessWidget {
             icon: Icons.directions_walk_rounded,
             color: Color(0xFF34C759),
             label: 'Pasos diarios',
-            detail:
-                'Se muestran tus pasos del día en el panel de inicio.',
+            detail: 'Se muestran tus pasos del día en el panel de inicio.',
             access: 'Solo lectura',
           ),
           const _HealthDataTile(
@@ -104,27 +141,65 @@ class HealthSettingsScreen extends StatelessWidget {
           ),
 
           const SizedBox(height: 28),
+
           if (Platform.isIOS)
-            ElevatedButton.icon(
-              onPressed: () async {
-                await HealthService().requestPermissions();
-              },
-              icon: const Icon(Icons.health_and_safety_outlined),
-              label: const Text('ADMINISTRAR PERMISOS DE SALUD'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                minimumSize: const Size(double.infinity, 50),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
+            _checking
+                ? const Center(child: CircularProgressIndicator())
+                : _permissionsGranted
+                    ? _buildPermissionsGrantedBanner()
+                    : ElevatedButton.icon(
+                        onPressed: _requestPermissions,
+                        icon: const Icon(Icons.health_and_safety_outlined),
+                        label: const Text('ACTIVAR INTEGRACIÓN CON SALUD'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          minimumSize: const Size(double.infinity, 50),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
 
           const SizedBox(height: 16),
           const Text(
             'Puedes revocar estos permisos en cualquier momento desde Ajustes › Salud › Apps › Power Stack.',
             textAlign: TextAlign.center,
             style: TextStyle(fontSize: 11, color: Colors.grey),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPermissionsGrantedBanner() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.check_circle_rounded,
+              color: AppColors.primary, size: 22),
+          const SizedBox(width: 12),
+          const Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Permisos activados',
+                    style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        color: AppColors.primary,
+                        fontSize: 13)),
+                SizedBox(height: 2),
+                Text(
+                  'Para modificarlos ve a Ajustes › Salud › Apps › Power Stack.',
+                  style: TextStyle(fontSize: 11, color: Colors.grey),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -211,8 +286,8 @@ class _HealthDataTile extends StatelessWidget {
                 ),
                 const SizedBox(height: 2),
                 Text(detail,
-                    style: TextStyle(
-                        fontSize: 11, color: Colors.grey.shade600)),
+                    style:
+                        TextStyle(fontSize: 11, color: Colors.grey.shade600)),
               ],
             ),
           ),

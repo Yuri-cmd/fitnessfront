@@ -5,6 +5,7 @@ import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart'
 class RoutineCard extends StatelessWidget {
   final Routine routine;
   final bool isDoneToday;
+  final bool isDoneThisWeek;
   final VoidCallback onStart;
   final VoidCallback onEdit;
   final VoidCallback? onArchive;
@@ -14,6 +15,7 @@ class RoutineCard extends StatelessWidget {
     super.key,
     required this.routine,
     required this.isDoneToday,
+    this.isDoneThisWeek = false,
     required this.onStart,
     required this.onEdit,
     this.onArchive,
@@ -23,11 +25,29 @@ class RoutineCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final archived = routine.isArchived;
-    final color = archived
-        ? Colors.grey
-        : isDoneToday
-            ? AppColors.primary
-            : Colors.grey.shade600;
+    final doneWeek = !archived && isDoneThisWeek;
+    final doneToday = !archived && isDoneToday;
+
+    Color avatarBg;
+    Color avatarIconColor;
+    IconData avatarIcon;
+    if (archived) {
+      avatarBg = Colors.grey.shade200;
+      avatarIconColor = Colors.grey;
+      avatarIcon = Icons.archive_outlined;
+    } else if (doneToday) {
+      avatarBg = AppColors.primary.withValues(alpha: 0.15);
+      avatarIconColor = AppColors.primary;
+      avatarIcon = Icons.check_rounded;
+    } else if (doneWeek) {
+      avatarBg = Colors.grey.shade200;
+      avatarIconColor = Colors.grey.shade500;
+      avatarIcon = Icons.check_rounded;
+    } else {
+      avatarBg = Colors.grey.shade100;
+      avatarIconColor = Colors.grey.shade600;
+      avatarIcon = Icons.flash_on_rounded;
+    }
 
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
@@ -36,20 +56,8 @@ class RoutineCard extends StatelessWidget {
         childrenPadding: EdgeInsets.zero,
         leading: CircleAvatar(
           radius: 20,
-          backgroundColor: archived
-              ? Colors.grey.shade200
-              : isDoneToday
-                  ? AppColors.primary.withValues(alpha: 0.15)
-                  : Colors.grey.shade100,
-          child: Icon(
-            archived
-                ? Icons.archive_outlined
-                : isDoneToday
-                    ? Icons.check_rounded
-                    : Icons.flash_on_rounded,
-            size: 20,
-            color: color,
-          ),
+          backgroundColor: avatarBg,
+          child: Icon(avatarIcon, size: 20, color: avatarIconColor),
         ),
         title: Text(
           routine.name,
@@ -58,7 +66,11 @@ class RoutineCard extends StatelessWidget {
           style: TextStyle(
             fontWeight: FontWeight.w700,
             fontSize: 14,
-            color: archived ? Colors.grey : null,
+            color: archived
+                ? Colors.grey
+                : doneWeek && !doneToday
+                    ? Colors.grey.shade500
+                    : null,
             height: 1.2,
           ),
         ),
@@ -73,7 +85,7 @@ class RoutineCard extends StatelessWidget {
                   color: archived ? Colors.grey.shade400 : Colors.grey.shade600,
                 ),
               ),
-              if (!archived && isDoneToday) ...[
+              if (doneToday) ...[
                 const SizedBox(width: 6),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -85,6 +97,23 @@ class RoutineCard extends StatelessWidget {
                     '¡HECHA HOY!',
                     style: TextStyle(
                       color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 9,
+                    ),
+                  ),
+                ),
+              ] else if (doneWeek) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: Text(
+                    'HECHA ESTA SEMANA',
+                    style: TextStyle(
+                      color: Colors.grey.shade500,
                       fontWeight: FontWeight.bold,
                       fontSize: 9,
                     ),
