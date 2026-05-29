@@ -240,6 +240,7 @@ class WorkoutController extends GetxController {
       {required int routineId}) {
     final logs = List<WorkoutLog>.from(workoutLogs);
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     final todayLogged = logs.any((log) {
       final d = log.completedAt;
@@ -249,17 +250,32 @@ class WorkoutController extends GetxController {
       logs.insert(0, WorkoutLog(completedAt: now, routineId: routineId));
     }
 
+    // Gap allowed between sessions scales with training frequency:
+    // 3 routines → max 2 rest days between sessions, 6 routines → max 1 rest day.
+    final frequency = routines.length.clamp(1, 7);
+    final maxGapDays = (7.0 / frequency).ceil();
+
+    // Unique training days sorted newest-first
+    final uniqueDays = logs
+        .map((log) {
+          final d = log.completedAt;
+          return DateTime(d.year, d.month, d.day);
+        })
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
     int streak = 0;
-    for (int i = 0; i < 365; i++) {
-      final day = now.subtract(Duration(days: i));
-      final trained = logs.any((log) {
-        final d = log.completedAt;
-        return d.year == day.year && d.month == day.month && d.day == day.day;
-      });
-      if (trained) {
-        streak++;
-      } else if (i > 0) {
-        break;
+    if (uniqueDays.isNotEmpty &&
+        today.difference(uniqueDays.first).inDays <= maxGapDays) {
+      streak = 1;
+      for (int i = 1; i < uniqueDays.length; i++) {
+        final gap = uniqueDays[i - 1].difference(uniqueDays[i]).inDays;
+        if (gap <= maxGapDays) {
+          streak++;
+        } else {
+          break;
+        }
       }
     }
 
