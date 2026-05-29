@@ -78,6 +78,34 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                               ),
                             ),
                           ],
+                          if (controller.isInSuperset) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.purple.withValues(alpha: 0.12),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.link_rounded,
+                                      size: 9,
+                                      color: Colors.purple.shade600),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    'SUPERSERIE',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.purple.shade600,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -248,12 +276,19 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              const Icon(Icons.check, size: 20),
+                              Icon(
+                                controller.isNextStepSupersetTransition
+                                    ? Icons.link_rounded
+                                    : Icons.check,
+                                size: 20,
+                              ),
                               const SizedBox(width: 8),
                               Text(
                                 isWarmup
                                     ? 'COMPLETAR APROX.'
-                                    : 'COMPLETAR SERIE',
+                                    : controller.isNextStepSupersetTransition
+                                        ? 'COMPLETAR → SUPERSERIE'
+                                        : 'COMPLETAR SERIE',
                                 style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w900),

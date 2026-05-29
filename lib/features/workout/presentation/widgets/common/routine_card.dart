@@ -178,53 +178,169 @@ class RoutineCard extends StatelessWidget {
   }
 
   List<Widget> _buildExerciseList() {
-    return routine.exercises.map<Widget>((ex) {
-      final pivot = ex.pivot!;
-      final warmupLabel =
-          pivot.warmupSets > 0 ? '${pivot.warmupSets} aprox. + ' : '';
-      final detail =
-          '$warmupLabel${pivot.sets} series × ${pivot.repsDisplay} reps';
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            const SizedBox(
-              width: 6,
-              height: 6,
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  shape: BoxShape.circle,
+    final exercises = routine.exercises;
+
+    // Compute ordinal label for each distinct superset group (in appearance order).
+    final seenGroups = <int>[];
+    for (final ex in exercises) {
+      final g = ex.pivot?.supersetGroup;
+      if (g != null && !seenGroups.contains(g)) seenGroups.add(g);
+    }
+    String ssLabel(int g) => 'SS ${seenGroups.indexOf(g) + 1}';
+
+    final widgets = <Widget>[];
+    int i = 0;
+    while (i < exercises.length) {
+      final ex = exercises[i];
+      final group = ex.pivot?.supersetGroup;
+
+      // Find how many consecutive exercises share this group.
+      int j = i + 1;
+      if (group != null) {
+        while (j < exercises.length &&
+            exercises[j].pivot?.supersetGroup == group) {
+          j++;
+        }
+      }
+
+      final inSuperset = group != null && j > i + 1;
+
+      if (inSuperset) {
+        // ── Superset block ───────────────────────────────────────────────────
+        // Header row with label
+        widgets.add(Padding(
+          padding: const EdgeInsets.fromLTRB(14, 8, 14, 4),
+          child: Row(
+            children: [
+              Icon(Icons.link_rounded,
+                  size: 11, color: Colors.purple.shade600),
+              const SizedBox(width: 4),
+              Text(
+                ssLabel(group),
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.purple.shade600,
+                  letterSpacing: 0.5,
                 ),
               ),
+            ],
+          ),
+        ));
+
+        // Exercises with a left accent bar
+        for (int k = i; k < j; k++) {
+          final e = exercises[k];
+          final pivot = e.pivot!;
+          final warmupLabel =
+              pivot.warmupSets > 0 ? '${pivot.warmupSets} aprox. + ' : '';
+          final detail =
+              '$warmupLabel${pivot.sets} series × ${pivot.repsDisplay} reps';
+          final isLast = k == j - 1;
+
+          widgets.add(IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                // Connecting accent bar
+                Container(
+                  width: 3,
+                  margin: EdgeInsets.only(
+                    left: 14,
+                    top: 0,
+                    bottom: isLast ? 4 : 0,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.purple.withValues(alpha: 0.35),
+                    borderRadius: isLast
+                        ? const BorderRadius.vertical(
+                            bottom: Radius.circular(3))
+                        : BorderRadius.zero,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 5),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          e.name,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        Text(
+                          detail,
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey.shade600,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 14),
+              ],
             ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    ex.name,
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w600,
-                    ),
+          ));
+        }
+        i = j;
+      } else {
+        // ── Regular exercise ─────────────────────────────────────────────────
+        final pivot = ex.pivot!;
+        final warmupLabel =
+            pivot.warmupSets > 0 ? '${pivot.warmupSets} aprox. + ' : '';
+        final detail =
+            '$warmupLabel${pivot.sets} series × ${pivot.repsDisplay} reps';
+
+        widgets.add(Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              const SizedBox(
+                width: 6,
+                height: 6,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: AppColors.primary,
+                    shape: BoxShape.circle,
                   ),
-                  Text(
-                    detail,
-                    style: TextStyle(
-                      fontSize: 11,
-                      color: Colors.grey.shade600,
-                    ),
-                  ),
-                ],
+                ),
               ),
-            ),
-          ],
-        ),
-      );
-    }).toList();
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      ex.name,
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    Text(
+                      detail,
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ));
+        i++;
+      }
+    }
+    return widgets;
   }
 }
 

@@ -16,11 +16,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
               controller.currentRestDuration.value.clamp(
                   1, controller.currentRestDuration.value);
 
-      // Próximo ejercicio: visible cuando es la última serie y hay más ejercicios
-      final showNext = controller.isLastSet && !controller.isLastEx;
-      final nextEx = showNext
-          ? controller.exercises[controller.currentExIdx.value + 1]
-          : null;
+      final nextEx = controller.showNextExerciseHint ? controller.nextExercise : null;
 
       return Container(
         width: double.infinity,

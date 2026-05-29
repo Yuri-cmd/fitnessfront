@@ -10,6 +10,16 @@ import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart'
 
 enum TrainingPhase { ready, resting, finished }
 
+/// A single step in the flat execution order of the session.
+/// [skipRestAfter] = true means go directly to the next step without a rest
+/// period (superset transition).
+class _Step {
+  final int exIdx;
+  final int setIdx;
+  final bool skipRestAfter;
+  const _Step(this.exIdx, this.setIdx, this.skipRestAfter);
+}
+
 class TrainingSessionController extends GetxController with WidgetsBindingObserver {
   final Routine routine;
 
@@ -40,6 +50,10 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   final sets = <List<Map<String, dynamic>>>[].obs;
 
   late List<List<TextEditingController>> controllers;
+
+  // ── Flat execution order ───────────────────────────────────────────────────
+  List<_Step> _steps = [];
+  int _stepIdx = 0;
 
   // ── Init / dispose ─────────────────────────────────────────────────────────
   @override
@@ -110,6 +124,81 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     controllers = exerciseOrder.map((ex) {
       return List.generate(ex.pivot!.totalSets, (_) => TextEditingController());
     }).toList();
+
+    _steps = _buildSteps(exerciseOrder);
+    _stepIdx = 0;
+    if (_steps.isNotEmpty) {
+      currentExIdx.value = _steps[0].exIdx;
+      currentSetIdx.value = _steps[0].setIdx;
+    }
+  }
+
+  /// Builds the flat execution order, handling superset groups.
+  ///
+  /// For exercises in a superset group (consecutive exercises sharing the same
+  /// non-null supersetGroup value):
+  /// - Warmup sets are executed per-exercise with rest between them.
+  /// - Working sets are executed in rounds: one set from each exercise in the
+  ///   group per round, with no rest between exercises in a round, and a normal
+  ///   rest only after the last exercise in each round.
+  List<_Step> _buildSteps(List<Exercise> exList) {
+    final steps = <_Step>[];
+    int i = 0;
+    while (i < exList.length) {
+      final group = exList[i].pivot!.supersetGroup;
+
+      // Find the end of this superset block (consecutive same group).
+      int j = i + 1;
+      while (group != null &&
+          j < exList.length &&
+          exList[j].pivot!.supersetGroup == group) {
+        j++;
+      }
+
+      if (group == null || j == i + 1) {
+        // Regular exercise — all sets linearly with rest after each.
+        for (int s = 0; s < exList[i].pivot!.totalSets; s++) {
+          steps.add(_Step(i, s, false));
+        }
+        i++;
+      } else {
+        // Superset block: exList[i..j-1]
+
+        // 1. Warmup sets for each exercise individually (with rest).
+        for (int k = i; k < j; k++) {
+          for (int s = 0; s < exList[k].pivot!.warmupSets; s++) {
+            steps.add(_Step(k, s, false));
+          }
+        }
+
+        // 2. Working sets in rounds.
+        final maxRounds = exList
+            .sublist(i, j)
+            .map((e) => e.pivot!.sets)
+            .reduce((a, b) => a > b ? a : b);
+
+        for (int round = 0; round < maxRounds; round++) {
+          // Collect exercises that still have a working set in this round.
+          final inRound = <int>[];
+          for (int k = i; k < j; k++) {
+            final setIdx = exList[k].pivot!.warmupSets + round;
+            if (setIdx < exList[k].pivot!.totalSets) {
+              inRound.add(k);
+            }
+          }
+          for (int m = 0; m < inRound.length; m++) {
+            final k = inRound[m];
+            final setIdx = exList[k].pivot!.warmupSets + round;
+            final isLastInRound = (m == inRound.length - 1);
+            // skipRestAfter = true means transition immediately to next exercise
+            steps.add(_Step(k, setIdx, !isLastInRound));
+          }
+        }
+
+        i = j;
+      }
+    }
+    return steps;
   }
 
   // ── Computed properties ────────────────────────────────────────────────────
@@ -128,8 +217,27 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   }
 
   bool get isLastEx => currentExIdx.value >= exercises.length - 1;
-  bool get isLastOfAll => isLastEx && isLastSet;
-  bool get canGoBack => currentExIdx.value > 0 || currentSetIdx.value > 0;
+  bool get isLastOfAll => _stepIdx >= _steps.length - 1;
+  bool get canGoBack => _stepIdx > 0 || phase.value == TrainingPhase.resting;
+
+  /// True when the current exercise is part of a superset group.
+  bool get isInSuperset => currentEx?.pivot?.supersetGroup != null;
+
+  /// True when completing the current set will immediately jump to the next
+  /// exercise without a rest (superset transition).
+  bool get isNextStepSupersetTransition =>
+      !isLastOfAll && _steps[_stepIdx].skipRestAfter;
+
+  /// The next exercise to be done after the current rest, or null if none / same exercise.
+  Exercise? get nextExercise {
+    if (isLastOfAll || _stepIdx + 1 >= _steps.length) return null;
+    final nextExIdx = _steps[_stepIdx + 1].exIdx;
+    if (nextExIdx == currentExIdx.value) return null;
+    return exercises[nextExIdx];
+  }
+
+  /// Whether to show the "next exercise" hint during rest.
+  bool get showNextExerciseHint => nextExercise != null;
 
   int get exDoneCount =>
       sets.where((s) => s.every((x) => x['done'] == true)).length;
@@ -137,6 +245,8 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       exercises.isEmpty ? 0 : exDoneCount / exercises.length;
 
   String get nextActionLabel {
+    if (isLastOfAll) return 'TERMINAR';
+    if (_steps[_stepIdx].skipRestAfter) return 'SUPERSERIE →';
     if (isLastSet) return isLastEx ? 'TERMINAR' : 'SIGUIENTE EJERCICIO';
     final nextIdx = currentSetIdx.value + 1;
     final isNextWarmup =
@@ -204,6 +314,11 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     if (isLastOfAll) {
       phase.value = TrainingPhase.finished;
       LiveActivityService.end();
+    } else if (_steps[_stepIdx].skipRestAfter) {
+      // Superset transition: advance immediately, no rest.
+      _advanceSet();
+      phase.value = TrainingPhase.ready;
+      _updateLiveActivity(isResting: false);
     } else {
       phase.value = TrainingPhase.resting;
       isWarmupRest.value = wasWarmup;
@@ -239,7 +354,6 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
         : restRemaining.value;
 
     final newRemaining = (currentRemaining + delta).clamp(5, 300);
-    // Don't persist adjustment to working rest while in a warmup rest
     if (!isWarmupRest.value) {
       restTime.value = (restTime.value + delta).clamp(5, 300);
     }
@@ -260,15 +374,13 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       return;
     }
 
-    if (currentSetIdx.value > 0) {
-      sets[currentExIdx.value][currentSetIdx.value - 1]['done'] = false;
-      currentSetIdx.value--;
-    } else {
-      currentExIdx.value--;
-      currentSetIdx.value = currentEx!.pivot!.totalSets - 1;
+    if (_stepIdx > 0) {
+      _stepIdx--;
+      currentExIdx.value = _steps[_stepIdx].exIdx;
+      currentSetIdx.value = _steps[_stepIdx].setIdx;
       sets[currentExIdx.value][currentSetIdx.value]['done'] = false;
+      sets.refresh();
     }
-    sets.refresh();
   }
 
   void reorderExercises(int from, int to) {
@@ -283,15 +395,26 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
     exerciseOrder.refresh();
     sets.refresh();
+
+    // Rebuild step list for new order and find first incomplete step.
+    _steps = _buildSteps(exerciseOrder);
+    _stepIdx = 0;
+    for (int i = 0; i < _steps.length; i++) {
+      if (sets[_steps[i].exIdx][_steps[i].setIdx]['done'] != true) {
+        _stepIdx = i;
+        break;
+      }
+    }
+    currentExIdx.value = _steps[_stepIdx].exIdx;
+    currentSetIdx.value = _steps[_stepIdx].setIdx;
   }
 
   // ── Internal ───────────────────────────────────────────────────────────────
   void _advanceSet() {
-    if (!isLastSet) {
-      currentSetIdx.value++;
-    } else {
-      currentExIdx.value++;
-      currentSetIdx.value = 0;
+    if (_stepIdx < _steps.length - 1) {
+      _stepIdx++;
+      currentExIdx.value = _steps[_stepIdx].exIdx;
+      currentSetIdx.value = _steps[_stepIdx].setIdx;
     }
     _autoFillCurrentWeight();
   }
