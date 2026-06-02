@@ -56,7 +56,7 @@ class WeightMetricsScreen extends StatelessWidget {
       title: const Text('NUEVO REGISTRO'),
       content: TextField(
         controller: ctrl,
-        keyboardType: TextInputType.number,
+        keyboardType: const TextInputType.numberWithOptions(decimal: true),
         decoration: const InputDecoration(hintText: 'Peso en kg'),
         autofocus: true,
       ),
@@ -87,13 +87,13 @@ class WeightMetricsScreen extends StatelessWidget {
         children: [
           TextField(
             controller: heightCtrl,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Talla (cm)'),
           ),
           const SizedBox(height: 16),
           TextField(
             controller: weightCtrl,
-            keyboardType: TextInputType.number,
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
             decoration: const InputDecoration(labelText: 'Peso Inicial (kg)'),
           ),
         ],

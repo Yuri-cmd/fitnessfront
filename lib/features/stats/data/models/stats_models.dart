@@ -58,6 +58,50 @@ class PersonalRecord {
       );
 }
 
+class ExerciseProgressPoint {
+  final String date;
+  final double maxWeight;
+  final int totalReps;
+  final double sessionVolume;
+
+  const ExerciseProgressPoint({
+    required this.date,
+    required this.maxWeight,
+    required this.totalReps,
+    required this.sessionVolume,
+  });
+
+  factory ExerciseProgressPoint.fromJson(Map<String, dynamic> json) =>
+      ExerciseProgressPoint(
+        date: json['date'].toString(),
+        maxWeight: double.parse(json['max_weight'].toString()),
+        totalReps: (json['total_reps'] as num).toInt(),
+        sessionVolume: double.parse(json['session_volume'].toString()),
+      );
+}
+
+class RoutineProgressPoint {
+  final String date;
+  final double totalVolume;
+  final int exercisesCount;
+  final int totalSets;
+
+  const RoutineProgressPoint({
+    required this.date,
+    required this.totalVolume,
+    required this.exercisesCount,
+    required this.totalSets,
+  });
+
+  factory RoutineProgressPoint.fromJson(Map<String, dynamic> json) =>
+      RoutineProgressPoint(
+        date: json['date'].toString(),
+        totalVolume: double.parse(json['total_volume'].toString()),
+        exercisesCount: (json['exercises_count'] as num).toInt(),
+        totalSets: (json['total_sets'] as num).toInt(),
+      );
+}
+
 class AchievementPivot {
   final DateTime? earnedAt;
 

@@ -4,6 +4,7 @@ import 'package:fit_tracker_app/features/workout/data/models/exercise_model.dart
 import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart';
 import 'package:fit_tracker_app/features/workout/data/models/workout_log_model.dart';
 import 'package:fit_tracker_app/features/workout/data/services/workout_service.dart';
+import 'package:fit_tracker_app/features/workout/domain/streak_calculator.dart';
 import 'package:fit_tracker_app/core/services/health_service.dart';
 import 'package:fit_tracker_app/core/services/app_flags.dart';
 
@@ -238,57 +239,12 @@ class WorkoutController extends GetxController {
 
   ({int streak, List<bool> trainedDays}) computeStreakData(
       {required int routineId}) {
-    final logs = List<WorkoutLog>.from(workoutLogs);
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-
-    final todayLogged = logs.any((log) {
-      final d = log.completedAt;
-      return d.year == now.year && d.month == now.month && d.day == now.day;
-    });
-    if (!todayLogged) {
-      logs.insert(0, WorkoutLog(completedAt: now, routineId: routineId));
-    }
-
-    // Gap allowed between sessions scales with training frequency:
-    // 3 routines → max 2 rest days between sessions, 6 routines → max 1 rest day.
-    final frequency = routines.length.clamp(1, 7);
-    final maxGapDays = (7.0 / frequency).ceil();
-
-    // Unique training days sorted newest-first
-    final uniqueDays = logs
-        .map((log) {
-          final d = log.completedAt;
-          return DateTime(d.year, d.month, d.day);
-        })
-        .toSet()
-        .toList()
-      ..sort((a, b) => b.compareTo(a));
-
-    int streak = 0;
-    if (uniqueDays.isNotEmpty &&
-        today.difference(uniqueDays.first).inDays <= maxGapDays) {
-      streak = 1;
-      for (int i = 1; i < uniqueDays.length; i++) {
-        final gap = uniqueDays[i - 1].difference(uniqueDays[i]).inDays;
-        if (gap <= maxGapDays) {
-          streak++;
-        } else {
-          break;
-        }
-      }
-    }
-
-    final monday = now.subtract(Duration(days: now.weekday - 1));
-    final trainedDays = List.generate(7, (i) {
-      final day = monday.add(Duration(days: i));
-      return logs.any((log) {
-        final d = log.completedAt;
-        return d.year == day.year && d.month == day.month && d.day == day.day;
-      });
-    });
-
-    return (streak: streak, trainedDays: trainedDays);
+    return calculateStreak(
+      logs: List<WorkoutLog>.from(workoutLogs),
+      routineCount: routines.length,
+      now: DateTime.now(),
+      insertRoutineId: routineId,
+    );
   }
 
   bool isDoneToday(Routine routine) {

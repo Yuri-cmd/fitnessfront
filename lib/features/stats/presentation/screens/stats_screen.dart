@@ -5,6 +5,7 @@ import 'package:fit_tracker_app/features/stats/presentation/widgets/weight_secti
 import 'package:fit_tracker_app/features/stats/presentation/widgets/activity_heatmap_card.dart';
 import 'package:fit_tracker_app/features/stats/presentation/widgets/volume_section_card.dart';
 import 'package:fit_tracker_app/features/stats/presentation/widgets/personal_records_card.dart';
+import 'package:fit_tracker_app/features/stats/presentation/widgets/progress_section_card.dart';
 
 class StatsScreen extends StatelessWidget {
   const StatsScreen({super.key});
@@ -33,6 +34,8 @@ class StatsScreen extends StatelessWidget {
                 VolumeSectionCard(),
                 SizedBox(height: 32),
                 PersonalRecordsCard(),
+                SizedBox(height: 32),
+                ProgressSectionCard(),
                 SizedBox(height: 24),
               ],
             ),

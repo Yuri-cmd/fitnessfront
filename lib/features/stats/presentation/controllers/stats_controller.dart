@@ -14,6 +14,14 @@ class StatsController extends GetxController {
   final achievements = <Achievement>[].obs;
   final isLoading = false.obs;
 
+  // Progress tracking
+  final exerciseProgress = <ExerciseProgressPoint>[].obs;
+  final routineProgress = <RoutineProgressPoint>[].obs;
+  final isLoadingProgress = false.obs;
+  final selectedProgressTab = 0.obs; // 0=ejercicio, 1=rutina
+  final selectedExerciseId = Rxn<int>();
+  final selectedRoutineId = Rxn<int>();
+
   @override
   void onInit() {
     super.onInit();
@@ -33,6 +41,40 @@ class StatsController extends GetxController {
           PersonalRecord.fromJson),
     ]);
     isLoading.value = false;
+  }
+
+  Future<void> loadProgressByExercise(int exerciseId) async {
+    selectedExerciseId.value = exerciseId;
+    isLoadingProgress.value = true;
+    try {
+      final r = await _statsService.getProgressByExercise(exerciseId);
+      if (r.statusCode == 200) {
+        exerciseProgress.value = (r.data as List<dynamic>)
+            .map((e) => ExerciseProgressPoint.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {
+      exerciseProgress.clear();
+    } finally {
+      isLoadingProgress.value = false;
+    }
+  }
+
+  Future<void> loadProgressByRoutine(int routineId) async {
+    selectedRoutineId.value = routineId;
+    isLoadingProgress.value = true;
+    try {
+      final r = await _statsService.getProgressByRoutine(routineId);
+      if (r.statusCode == 200) {
+        routineProgress.value = (r.data as List<dynamic>)
+            .map((e) => RoutineProgressPoint.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (_) {
+      routineProgress.clear();
+    } finally {
+      isLoadingProgress.value = false;
+    }
   }
 
   Future<void> loadAchievements() async {

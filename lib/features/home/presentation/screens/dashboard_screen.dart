@@ -165,7 +165,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   Widget _buildHeroBanner(bool isDark) {
     final fitness = Get.find<FitnessController>();
-    final name = Get.find<AuthController>().userName.value;
+    final name = Get.find<AuthController>()
+        .userName
+        .value
+        .split(' ')
+        .map((w) => w.isEmpty ? w : '${w[0].toUpperCase()}${w.substring(1).toLowerCase()}')
+        .join(' ');
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
