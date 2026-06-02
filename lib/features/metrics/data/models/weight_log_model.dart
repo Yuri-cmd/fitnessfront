@@ -11,7 +11,7 @@ class WeightLog {
 
   factory WeightLog.fromJson(Map<String, dynamic> json) => WeightLog(
         id: json['id'] as int?,
-        weight: (json['weight'] as num).toDouble(),
+        weight: double.parse(json['weight'].toString()),
         createdAt: DateTime.parse(json['created_at'] as String),
       );
 }

@@ -5,7 +5,7 @@ class WeightHistory {
   const WeightHistory({required this.weight, required this.createdAt});
 
   factory WeightHistory.fromJson(Map<String, dynamic> json) => WeightHistory(
-        weight: (json['weight'] as num).toDouble(),
+        weight: double.parse(json['weight'].toString()),
         createdAt: DateTime.parse(json['created_at'] as String),
       );
 }
@@ -21,7 +21,7 @@ class VolumeByMuscle {
 
   factory VolumeByMuscle.fromJson(Map<String, dynamic> json) => VolumeByMuscle(
         muscleGroup: json['muscle_group']?.toString() ?? '',
-        totalVolume: (json['total_volume'] as num).toDouble(),
+        totalVolume: double.parse(json['total_volume'].toString()),
       );
 }
 
@@ -54,7 +54,7 @@ class PersonalRecord {
         id: json['id'] as int?,
         name: json['name']?.toString() ?? 'Ejercicio',
         muscleGroup: json['muscle_group']?.toString(),
-        maxWeight: (json['max_weight'] as num).toDouble(),
+        maxWeight: double.parse(json['max_weight'].toString()),
       );
 }
 

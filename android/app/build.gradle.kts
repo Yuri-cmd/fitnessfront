@@ -17,7 +17,7 @@ if (keyPropertiesFile.exists()) {
 
 android {
     namespace = "com.fittracker.powerstack"
-    compileSdk = 35
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {
@@ -42,7 +42,7 @@ android {
 
     defaultConfig {
         applicationId = "com.fittracker.powerstack"
-        minSdk = 21
+        minSdk = flutter.minSdkVersion
         targetSdk = 35
         versionCode = flutter.versionCode
         versionName = flutter.versionName
