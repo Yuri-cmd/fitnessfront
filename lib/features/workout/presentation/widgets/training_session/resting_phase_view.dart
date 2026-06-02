@@ -8,15 +8,21 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return Obx(() {
-      final restPct = (controller.restTime.value - controller.restRemaining.value) /
-          controller.restTime.value.clamp(1, controller.restTime.value);
+      final restPct =
+          (controller.currentRestDuration.value - controller.restRemaining.value) /
+              controller.currentRestDuration.value.clamp(
+                  1, controller.currentRestDuration.value);
+
+      final nextEx = controller.showNextExerciseHint ? controller.nextExercise : null;
 
       return Container(
         width: double.infinity,
         padding: const EdgeInsets.all(28),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: colorScheme.surface,
           borderRadius: BorderRadius.circular(24),
           boxShadow: [
             BoxShadow(
@@ -29,7 +35,8 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
           children: [
             // Badge completado
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
               decoration: BoxDecoration(
                 color: AppColors.primary.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(20),
@@ -40,50 +47,125 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                   const Icon(Icons.check, size: 14, color: AppColors.primary),
                   const SizedBox(width: 6),
                   Text(
-                    'Serie ${controller.completedSetNum.value} completada',
+                    controller.completedSetLabel,
                     style: const TextStyle(
-                        color: AppColors.primary, fontWeight: FontWeight.bold),
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 20),
-            const Text('DESCANSANDO',
-                style: TextStyle(
-                    fontSize: 10,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.grey,
-                    letterSpacing: 2)),
+
+            Text(
+              controller.isWarmupRest.value
+                  ? 'DESCANSO APROX.'
+                  : 'DESCANSANDO',
+              style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: colorScheme.onSurface.withValues(alpha: 0.45),
+                  letterSpacing: 2),
+            ),
             const SizedBox(height: 8),
+
+            // Timer — usa color explícito para ser visible en modo oscuro
             Text(
               controller.formatTime(controller.restRemaining.value),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 72,
                 fontWeight: FontWeight.w900,
-                fontFeatures: [FontFeature.tabularFigures()],
+                color: colorScheme.onSurface,
+                fontFeatures: const [FontFeature.tabularFigures()],
               ),
             ),
             const SizedBox(height: 16),
+
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
               child: LinearProgressIndicator(
                 value: restPct.clamp(0.0, 1.0),
                 minHeight: 8,
-                backgroundColor: Theme.of(context).colorScheme.surfaceContainerHighest,
+                backgroundColor:
+                    colorScheme.onSurface.withValues(alpha: 0.08),
                 color: AppColors.primary,
               ),
             ),
+
+            // Próximo ejercicio
+            if (nextEx != null) ...[
+              const SizedBox(height: 18),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: colorScheme.onSurface.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: colorScheme.onSurface.withValues(alpha: 0.08)),
+                ),
+                child: Row(
+                  children: [
+                    Icon(Icons.arrow_forward_rounded,
+                        size: 15,
+                        color:
+                            colorScheme.onSurface.withValues(alpha: 0.4)),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'PRÓXIMO EJERCICIO',
+                            style: TextStyle(
+                                fontSize: 9,
+                                fontWeight: FontWeight.bold,
+                                letterSpacing: 1,
+                                color: colorScheme.onSurface
+                                    .withValues(alpha: 0.4)),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            nextEx.name,
+                            style: TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: colorScheme.onSurface),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          if (nextEx.pivot != null)
+                            Text(
+                              '${nextEx.pivot!.totalSets} series × ${nextEx.pivot!.repsDisplay} reps',
+                              style: TextStyle(
+                                  fontSize: 11,
+                                  color: colorScheme.onSurface
+                                      .withValues(alpha: 0.5)),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+
             const SizedBox(height: 20),
             // Ajustar descanso
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                _buildRestAdjustBtn('-15s', () => controller.adjustRest(-15)),
+                _buildRestAdjustBtn(
+                    context, '-15s', () => controller.adjustRest(-15)),
                 const SizedBox(width: 12),
-                const Text('ajustar descanso',
-                    style: TextStyle(color: Colors.grey, fontSize: 12)),
+                Text('ajustar descanso',
+                    style: TextStyle(
+                        color: colorScheme.onSurface.withValues(alpha: 0.4),
+                        fontSize: 12)),
                 const SizedBox(width: 12),
-                _buildRestAdjustBtn('+15s', () => controller.adjustRest(15)),
+                _buildRestAdjustBtn(
+                    context, '+15s', () => controller.adjustRest(15)),
               ],
             ),
             const SizedBox(height: 20),
@@ -117,17 +199,22 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
     });
   }
 
-  Widget _buildRestAdjustBtn(String label, VoidCallback onTap) {
+  Widget _buildRestAdjustBtn(
+      BuildContext context, String label, VoidCallback onTap) {
+    final colorScheme = Theme.of(context).colorScheme;
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        side: const BorderSide(color: Colors.grey),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        side: BorderSide(
+            color: colorScheme.onSurface.withValues(alpha: 0.25)),
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       child: Text(label,
-          style: const TextStyle(
-              fontWeight: FontWeight.bold, color: Colors.grey)),
+          style: TextStyle(
+              fontWeight: FontWeight.bold,
+              color: colorScheme.onSurface.withValues(alpha: 0.6))),
     );
   }
 }

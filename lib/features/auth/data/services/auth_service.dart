@@ -25,6 +25,17 @@ class AuthService {
     return await _dio.post('/profile', data: data);
   }
 
+  Future<Response> changePassword({
+    required String currentPassword,
+    required String newPassword,
+  }) async {
+    return await _dio.put('/password', data: {
+      'current_password':      currentPassword,
+      'new_password':          newPassword,
+      'new_password_confirmation': newPassword,
+    });
+  }
+
   Future<Response> deleteAccount() async {
     return await _dio.delete('/account');
   }

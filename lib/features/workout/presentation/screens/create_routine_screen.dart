@@ -31,6 +31,10 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           'name': ex.name,
           'sets': ex.pivot?.sets ?? 3,
           'reps': ex.pivot?.reps ?? 12,
+          'reps_max': ex.pivot?.repsMax,
+          'warmup_sets': ex.pivot?.warmupSets ?? 0,
+          'warmup_reps': ex.pivot?.warmupReps,
+          'superset_group': ex.pivot?.supersetGroup,
         });
       }
     }
@@ -42,6 +46,159 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     _nameCtrl.dispose();
     super.dispose();
   }
+
+  // ── Superset helpers ────────────────────────────────────────────────────────
+
+  int _nextSupersetGroup() {
+    int max = 0;
+    for (final ex in _exercises) {
+      final g = ex['superset_group'] as int?;
+      if (g != null && g > max) max = g;
+    }
+    return max + 1;
+  }
+
+  /// Display label for a group id — "SUPERSERIE 1", "SUPERSERIE 2", etc.
+  /// based on order of first appearance in the exercise list.
+  String _supersetLabel(int groupId) {
+    final seen = <int>[];
+    for (final ex in _exercises) {
+      final g = ex['superset_group'] as int?;
+      if (g != null && !seen.contains(g)) seen.add(g);
+    }
+    final ordinal = seen.indexOf(groupId) + 1;
+    return 'SUPERSERIE $ordinal';
+  }
+
+  /// Returns all distinct superset group ids present in the exercise list.
+  List<int> _existingGroups() {
+    final seen = <int>[];
+    for (final ex in _exercises) {
+      final g = ex['superset_group'] as int?;
+      if (g != null && !seen.contains(g)) seen.add(g);
+    }
+    return seen;
+  }
+
+  /// Opens a picker so the user can freely assign [index] to any group.
+  void _showGroupPicker(int index) {
+    final current = _exercises[index]['superset_group'] as int?;
+    final groups = _existingGroups();
+
+    showModalBottomSheet(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: Colors.grey.shade300,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 16),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                _exercises[index]['name'] as String? ?? '',
+                style: const TextStyle(
+                    fontWeight: FontWeight.bold, fontSize: 15),
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 20),
+              child: Text(
+                'Asignar a una superserie',
+                style: TextStyle(color: Colors.grey, fontSize: 12),
+              ),
+            ),
+            const SizedBox(height: 12),
+            const Divider(height: 1),
+            // Remove from group
+            ListTile(
+              leading: const Icon(Icons.link_off_rounded, color: Colors.grey),
+              title: const Text('Sin superserie'),
+              trailing: current == null
+                  ? const Icon(Icons.check, color: AppColors.primary, size: 18)
+                  : null,
+              onTap: () {
+                setState(() {
+                  _exercises[index]['superset_group'] = null;
+                  // Clean up orphaned members in the old group.
+                  if (current != null) {
+                    final remaining = _exercises
+                        .where((e) => e['superset_group'] == current)
+                        .toList();
+                    if (remaining.length == 1) {
+                      remaining.first['superset_group'] = null;
+                    }
+                  }
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+            // Existing groups
+            for (final g in groups)
+              ListTile(
+                leading: const Icon(Icons.link_rounded,
+                    color: AppColors.primary),
+                title: Text(_supersetLabel(g)),
+                trailing: current == g
+                    ? const Icon(Icons.check,
+                        color: AppColors.primary, size: 18)
+                    : null,
+                onTap: () {
+                  setState(() {
+                    // Clean up old group first (orphan check).
+                    if (current != null && current != g) {
+                      final remaining = _exercises
+                          .where((e) => e['superset_group'] == current)
+                          .toList();
+                      if (remaining.length == 1) {
+                        remaining.first['superset_group'] = null;
+                      }
+                    }
+                    _exercises[index]['superset_group'] = g;
+                  });
+                  Navigator.pop(ctx);
+                },
+              ),
+            // Create new group
+            ListTile(
+              leading: const Icon(Icons.add_link_rounded,
+                  color: AppColors.primary),
+              title: const Text('Nueva superserie'),
+              onTap: () {
+                setState(() {
+                  if (current != null) {
+                    final remaining = _exercises
+                        .where((e) => e['superset_group'] == current)
+                        .toList();
+                    if (remaining.length == 1) {
+                      remaining.first['superset_group'] = null;
+                    }
+                  }
+                  _exercises[index]['superset_group'] = _nextSupersetGroup();
+                });
+                Navigator.pop(ctx);
+              },
+            ),
+            const SizedBox(height: 8),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Build ───────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -83,14 +240,30 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Expanded(
               child: _exercises.isEmpty
                   ? const _EmptyExercises()
-                  : ListView.builder(
+                  : ReorderableListView.builder(
                       itemCount: _exercises.length,
-                      itemBuilder: (_, i) => _ExerciseTile(
-                        exercise: _exercises[i],
-                        onEdit: () => _editExercise(i),
-                        onDelete: () =>
-                            setState(() => _exercises.removeAt(i)),
-                      ),
+                      onReorder: (oldIdx, newIdx) {
+                        setState(() {
+                          if (newIdx > oldIdx) newIdx--;
+                          final item = _exercises.removeAt(oldIdx);
+                          _exercises.insert(newIdx, item);
+                        });
+                      },
+                      itemBuilder: (_, i) {
+                        final groupId =
+                            _exercises[i]['superset_group'] as int?;
+                        return _ExerciseTile(
+                          key: ValueKey(_exercises[i]['exercise_id']),
+                          exercise: _exercises[i],
+                          onEdit: () => _editExercise(i),
+                          onDelete: () =>
+                              setState(() => _exercises.removeAt(i)),
+                          supersetLabel: groupId != null
+                              ? _supersetLabel(groupId)
+                              : null,
+                          onTapSuperset: () => _showGroupPicker(i),
+                        );
+                      },
                     ),
             ),
             const SizedBox(height: 16),
@@ -109,7 +282,10 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   void _openExercisePicker() {
     Get.bottomSheet(
       ExercisePickerSheet(
-        onAdded: (ex) => setState(() => _exercises.add(ex)),
+        onAdded: (ex) => setState(() => _exercises.add({
+              ...ex,
+              'superset_group': null,
+            })),
       ),
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -120,23 +296,76 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
     final ex = _exercises[index];
     final setsCtrl = TextEditingController(text: ex['sets'].toString());
     final repsCtrl = TextEditingController(text: ex['reps'].toString());
+    final repsMaxCtrl =
+        TextEditingController(text: ex['reps_max']?.toString() ?? '');
+    final warmupSetsCtrl =
+        TextEditingController(text: (ex['warmup_sets'] ?? 0).toString());
+    final warmupRepsCtrl =
+        TextEditingController(text: ex['warmup_reps'] ?? '');
+
     Get.dialog(AlertDialog(
       title: Text('EDITAR: ${ex['name']}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: setsCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Series'),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: repsCtrl,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Repeticiones'),
-          ),
-        ],
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const _SectionLabel('SERIES EFECTIVAS'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: setsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Series'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: repsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        const InputDecoration(labelText: 'Reps mín'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: TextField(
+                    controller: repsMaxCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                        labelText: 'Reps máx', hintText: 'opc.'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            const _SectionLabel('SERIES DE APROXIMACIÓN'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: warmupSetsCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(labelText: 'Series'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  flex: 2,
+                  child: TextField(
+                    controller: warmupRepsCtrl,
+                    decoration: const InputDecoration(
+                      labelText: 'Reps (rango)',
+                      hintText: 'ej. 10-15',
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
       actions: [
         TextButton(onPressed: Get.back, child: const Text('CANCELAR')),
@@ -147,6 +376,14 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   int.tryParse(setsCtrl.text) ?? ex['sets'];
               _exercises[index]['reps'] =
                   int.tryParse(repsCtrl.text) ?? ex['reps'];
+              _exercises[index]['reps_max'] =
+                  int.tryParse(repsMaxCtrl.text);
+              _exercises[index]['warmup_sets'] =
+                  int.tryParse(warmupSetsCtrl.text) ?? 0;
+              _exercises[index]['warmup_reps'] =
+                  warmupRepsCtrl.text.trim().isEmpty
+                      ? null
+                      : warmupRepsCtrl.text.trim();
             });
             Get.back();
           },
@@ -169,8 +406,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             Get.back();
           },
           style: ElevatedButton.styleFrom(backgroundColor: AppColors.alert),
-          child: const Text('ELIMINAR',
-              style: TextStyle(color: Colors.white)),
+          child:
+              const Text('ELIMINAR', style: TextStyle(color: Colors.white)),
         ),
       ],
     ));
@@ -185,7 +422,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
       return;
     }
     final success = _isEditing
-        ? await _c.updateRoutine(widget.routine!.id, _nameCtrl.text, _exercises)
+        ? await _c.updateRoutine(
+            widget.routine!.id, _nameCtrl.text, _exercises)
         : await _c.createRoutine(_nameCtrl.text, _exercises);
     if (success) {
       Get.back();
@@ -198,7 +436,25 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   }
 }
 
-// ── Widgets privados ──────────────────────────────────────────────────────────
+// ── Private widgets ───────────────────────────────────────────────────────────
+
+class _SectionLabel extends StatelessWidget {
+  final String text;
+  const _SectionLabel(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Text(text,
+          style: const TextStyle(
+              fontSize: 10,
+              fontWeight: FontWeight.bold,
+              color: AppColors.primary,
+              letterSpacing: 1)),
+    );
+  }
+}
 
 class _EmptyExercises extends StatelessWidget {
   const _EmptyExercises();
@@ -224,32 +480,121 @@ class _ExerciseTile extends StatelessWidget {
   final Map<String, dynamic> exercise;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final String? supersetLabel;
+  final VoidCallback onTapSuperset;
 
   const _ExerciseTile({
+    super.key,
     required this.exercise,
     required this.onEdit,
     required this.onDelete,
+    required this.supersetLabel,
+    required this.onTapSuperset,
   });
 
   @override
   Widget build(BuildContext context) {
+    final warmupSets = (exercise['warmup_sets'] as int?) ?? 0;
+    final reps = exercise['reps'] as int;
+    final repsMax = exercise['reps_max'] as int?;
+    final repsDisplay = repsMax != null ? '$reps-$repsMax' : '$reps';
+    final warmupLabel = warmupSets > 0 ? '$warmupSets aprox. + ' : '';
+    final subtitle =
+        '$warmupLabel${exercise['sets']} series × $repsDisplay reps';
+
     return Card(
-      child: ListTile(
-        onTap: onEdit,
-        title: Text(exercise['name'] ?? 'S/N',
-            style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle:
-            Text('${exercise['sets']} series x ${exercise['reps']} reps'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(0, 4, 4, 4),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Drag handle
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Icon(Icons.drag_handle, color: Colors.grey),
+            ),
+            // Content
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    exercise['name'] ?? 'S/N',
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold, fontSize: 14),
+                  ),
+                  Text(subtitle,
+                      style: TextStyle(
+                          fontSize: 12, color: Colors.grey.shade600)),
+                  const SizedBox(height: 4),
+                  // Superset chip
+                  GestureDetector(
+                    onTap: onTapSuperset,
+                    child: supersetLabel != null
+                        ? Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color:
+                                  AppColors.primary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                  color: AppColors.primary
+                                      .withValues(alpha: 0.25)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.link_rounded,
+                                    size: 11, color: AppColors.primary),
+                                const SizedBox(width: 4),
+                                Text(
+                                  supersetLabel!,
+                                  style: const TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold,
+                                    color: AppColors.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                const Icon(Icons.expand_more_rounded,
+                                    size: 11, color: AppColors.primary),
+                              ],
+                            ),
+                          )
+                        : Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(Icons.add_link_rounded,
+                                  size: 11, color: Colors.grey.shade400),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Añadir a superserie',
+                                style: TextStyle(
+                                    fontSize: 10,
+                                    color: Colors.grey.shade400),
+                              ),
+                            ],
+                          ),
+                  ),
+                ],
+              ),
+            ),
+            // Actions
             IconButton(
               icon: const Icon(Icons.edit_outlined, color: AppColors.primary),
               onPressed: onEdit,
+              iconSize: 20,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
             ),
             IconButton(
               icon: const Icon(Icons.delete_outline, color: AppColors.alert),
               onPressed: onDelete,
+              iconSize: 20,
+              constraints: const BoxConstraints(),
+              padding: const EdgeInsets.all(8),
             ),
           ],
         ),

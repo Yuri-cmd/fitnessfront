@@ -86,6 +86,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
             onSelected: (value) {
               if (value == 'logout') {
                 Get.find<AuthController>().logout();
+              } else if (value == 'password') {
+                _showChangePasswordDialog(context);
               } else if (value == 'delete') {
                 _showDeleteAccountDialog(context);
               }
@@ -97,6 +99,14 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Icon(Icons.logout, size: 18),
                   SizedBox(width: 10),
                   Text('Cerrar sesión'),
+                ]),
+              ),
+              const PopupMenuItem(
+                value: 'password',
+                child: Row(children: [
+                  Icon(Icons.lock_outline, size: 18),
+                  SizedBox(width: 10),
+                  Text('Cambiar contraseña'),
                 ]),
               ),
               const PopupMenuItem(
@@ -419,6 +429,145 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   // ─── Diálogos ─────────────────────────────────────────────────────────────
+
+  void _showChangePasswordDialog(BuildContext context) {
+    final currentCtrl = TextEditingController();
+    final newCtrl = TextEditingController();
+    final confirmCtrl = TextEditingController();
+    final obscureCurrent = ValueNotifier(true);
+    final obscureNew = ValueNotifier(true);
+    final obscureConfirm = ValueNotifier(true);
+    final errorMsg = ValueNotifier<String?>(null);
+    final isLoading = ValueNotifier(false);
+
+    Get.dialog(
+      StatefulBuilder(
+        builder: (_, setState) => AlertDialog(
+          title: const Text('Cambiar contraseña'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                ValueListenableBuilder<bool>(
+                  valueListenable: obscureCurrent,
+                  builder: (_, hide, __) => TextField(
+                    controller: currentCtrl,
+                    obscureText: hide,
+                    decoration: InputDecoration(
+                      labelText: 'Contraseña actual',
+                      suffixIcon: IconButton(
+                        icon: Icon(hide ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => obscureCurrent.value = !hide,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ValueListenableBuilder<bool>(
+                  valueListenable: obscureNew,
+                  builder: (_, hide, __) => TextField(
+                    controller: newCtrl,
+                    obscureText: hide,
+                    decoration: InputDecoration(
+                      labelText: 'Nueva contraseña',
+                      helperText: 'Mínimo 8 caracteres',
+                      suffixIcon: IconButton(
+                        icon: Icon(hide ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => obscureNew.value = !hide,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                ValueListenableBuilder<bool>(
+                  valueListenable: obscureConfirm,
+                  builder: (_, hide, __) => TextField(
+                    controller: confirmCtrl,
+                    obscureText: hide,
+                    decoration: InputDecoration(
+                      labelText: 'Confirmar nueva contraseña',
+                      suffixIcon: IconButton(
+                        icon: Icon(hide ? Icons.visibility_off : Icons.visibility),
+                        onPressed: () => obscureConfirm.value = !hide,
+                      ),
+                    ),
+                  ),
+                ),
+                ValueListenableBuilder<String?>(
+                  valueListenable: errorMsg,
+                  builder: (_, msg, __) => msg != null
+                      ? Padding(
+                          padding: const EdgeInsets.only(top: 10),
+                          child: Text(msg,
+                              style: const TextStyle(
+                                  color: Colors.red, fontSize: 12)),
+                        )
+                      : const SizedBox.shrink(),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Get.back(),
+              child: const Text('CANCELAR'),
+            ),
+            ValueListenableBuilder<bool>(
+              valueListenable: isLoading,
+              builder: (_, loading, __) => ElevatedButton(
+                onPressed: loading
+                    ? null
+                    : () async {
+                        errorMsg.value = null;
+                        if (currentCtrl.text.isEmpty ||
+                            newCtrl.text.isEmpty ||
+                            confirmCtrl.text.isEmpty) {
+                          errorMsg.value = 'Completa todos los campos.';
+                          return;
+                        }
+                        if (newCtrl.text.length < 8) {
+                          errorMsg.value =
+                              'La nueva contraseña debe tener al menos 8 caracteres.';
+                          return;
+                        }
+                        if (newCtrl.text != confirmCtrl.text) {
+                          errorMsg.value = 'Las contraseñas no coinciden.';
+                          return;
+                        }
+                        isLoading.value = true;
+                        final error =
+                            await Get.find<AuthController>().changePassword(
+                          currentPassword: currentCtrl.text,
+                          newPassword: newCtrl.text,
+                        );
+                        isLoading.value = false;
+                        if (error != null) {
+                          errorMsg.value = error;
+                        } else {
+                          Get.back();
+                          Get.snackbar(
+                            '¡Listo!',
+                            'Contraseña actualizada correctamente.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            margin: const EdgeInsets.all(16),
+                            borderRadius: 12,
+                          );
+                        }
+                      },
+                child: loading
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Text('GUARDAR'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
   void _showDeleteAccountDialog(BuildContext context) {
     final confirmController = TextEditingController();

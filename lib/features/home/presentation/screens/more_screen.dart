@@ -6,6 +6,7 @@ import 'package:fit_tracker_app/features/wiki/presentation/screens/wiki_screen.d
 import 'package:fit_tracker_app/features/metrics/presentation/screens/body_measurements_screen.dart';
 import 'package:fit_tracker_app/features/stats/presentation/screens/achievements_screen.dart';
 import 'package:fit_tracker_app/features/notifications/presentation/screens/notification_settings_screen.dart';
+import 'package:fit_tracker_app/features/home/presentation/screens/health_settings_screen.dart';
 
 class MoreScreen extends StatelessWidget {
   const MoreScreen({super.key});
@@ -55,6 +56,14 @@ class MoreScreen extends StatelessWidget {
             icon: Icons.notifications_rounded,
             color: Colors.indigo,
             screen: NotificationSettingsScreen(),
+          ),
+          SizedBox(height: 16),
+          _NavCard(
+            title: 'APPLE HEALTH',
+            subtitle: 'Datos que Power Stack sincroniza con Salud',
+            icon: Icons.favorite_rounded,
+            color: Color(0xFFFF3B5C),
+            screen: HealthSettingsScreen(),
           ),
         ],
       ),

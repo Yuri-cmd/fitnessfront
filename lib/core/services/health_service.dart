@@ -40,6 +40,20 @@ class HealthService {
     }
   }
 
+  Future<bool> hasPermissions() async {
+    try {
+      await _health.configure();
+      final result = await _health.hasPermissions(
+        _allTypes,
+        permissions: _permissions,
+      );
+      return result == true;
+    } catch (e) {
+      debugPrint('Health hasPermissions error: $e');
+      return false;
+    }
+  }
+
   // Retorna el peso más reciente en kg, o null si no hay datos
   Future<double?> getLatestWeight() async {
     try {

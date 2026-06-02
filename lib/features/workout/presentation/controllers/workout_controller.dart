@@ -14,11 +14,14 @@ class WorkoutController extends GetxController {
   WorkoutController(this._workoutService, this._healthService);
 
   final routines = <Routine>[].obs;
+  final archivedRoutines = <Routine>[].obs;
   final availableExercises = <Exercise>[].obs;
   final workoutLogs = <WorkoutLog>[].obs;
   final weeklyProgress = <int, bool>{}.obs;
   final isLoading = false.obs;
   final isLoadingExercises = false.obs;
+  final isLoadingArchived = false.obs;
+  final showArchived = false.obs;
   final selectedDate = DateTime.now().obs;
 
   @override
@@ -161,12 +164,59 @@ class WorkoutController extends GetxController {
     }
   }
 
+  Future<void> archiveRoutine(int id) async {
+    try {
+      await _workoutService.archiveRoutine(id);
+      await loadRoutines();
+      if (showArchived.value) await loadArchivedRoutines();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> unarchiveRoutine(int id) async {
+    try {
+      await _workoutService.unarchiveRoutine(id);
+      await loadRoutines();
+      await loadArchivedRoutines();
+    } catch (e) {
+      debugPrint(e.toString());
+    }
+  }
+
+  Future<void> loadArchivedRoutines() async {
+    isLoadingArchived.value = true;
+    try {
+      final response = await _workoutService.getArchivedRoutines();
+      if (response.statusCode == 200) {
+        archivedRoutines.value = (response.data as List<dynamic>)
+            .map((e) => Routine.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+    } catch (e) {
+      debugPrint(e.toString());
+    } finally {
+      isLoadingArchived.value = false;
+    }
+  }
+
+  void toggleArchived() {
+    showArchived.value = !showArchived.value;
+    if (showArchived.value && archivedRoutines.isEmpty) {
+      loadArchivedRoutines();
+    }
+  }
+
   Future<void> completeRoutine(
     int id, [
     List<Map<String, dynamic>>? sets,
     DateTime? startTime,
   ]) async {
     final start = startTime ?? DateTime.now();
+
+    // Optimistic update: marca la rutina como hecha de inmediato en la UI
+    workoutLogs.insert(0, WorkoutLog(routineId: id, completedAt: DateTime.now()));
+
     try {
       await _workoutService.completeRoutine(id, sets);
       _healthService.saveWorkout(start: start, end: DateTime.now());
@@ -190,6 +240,7 @@ class WorkoutController extends GetxController {
       {required int routineId}) {
     final logs = List<WorkoutLog>.from(workoutLogs);
     final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
 
     final todayLogged = logs.any((log) {
       final d = log.completedAt;
@@ -199,17 +250,32 @@ class WorkoutController extends GetxController {
       logs.insert(0, WorkoutLog(completedAt: now, routineId: routineId));
     }
 
+    // Gap allowed between sessions scales with training frequency:
+    // 3 routines → max 2 rest days between sessions, 6 routines → max 1 rest day.
+    final frequency = routines.length.clamp(1, 7);
+    final maxGapDays = (7.0 / frequency).ceil();
+
+    // Unique training days sorted newest-first
+    final uniqueDays = logs
+        .map((log) {
+          final d = log.completedAt;
+          return DateTime(d.year, d.month, d.day);
+        })
+        .toSet()
+        .toList()
+      ..sort((a, b) => b.compareTo(a));
+
     int streak = 0;
-    for (int i = 0; i < 365; i++) {
-      final day = now.subtract(Duration(days: i));
-      final trained = logs.any((log) {
-        final d = log.completedAt;
-        return d.year == day.year && d.month == day.month && d.day == day.day;
-      });
-      if (trained) {
-        streak++;
-      } else if (i > 0) {
-        break;
+    if (uniqueDays.isNotEmpty &&
+        today.difference(uniqueDays.first).inDays <= maxGapDays) {
+      streak = 1;
+      for (int i = 1; i < uniqueDays.length; i++) {
+        final gap = uniqueDays[i - 1].difference(uniqueDays[i]).inDays;
+        if (gap <= maxGapDays) {
+          streak++;
+        } else {
+          break;
+        }
       }
     }
 
@@ -231,6 +297,16 @@ class WorkoutController extends GetxController {
       final d = log.completedAt;
       final now = DateTime.now();
       return d.year == now.year && d.month == now.month && d.day == now.day;
+    });
+  }
+
+  bool isDoneThisWeek(Routine routine) {
+    final now = DateTime.now();
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final weekStart = DateTime(monday.year, monday.month, monday.day);
+    return workoutLogs.any((log) {
+      if (log.routineId != routine.id) return false;
+      return !log.completedAt.isBefore(weekStart);
     });
   }
 }
