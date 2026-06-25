@@ -5,6 +5,7 @@ class ExercisePivot {
   final int warmupSets;
   final String? warmupReps;
   final int? supersetGroup;
+  final int restSeconds;
 
   const ExercisePivot({
     required this.sets,
@@ -13,6 +14,7 @@ class ExercisePivot {
     this.warmupSets = 0,
     this.warmupReps,
     this.supersetGroup,
+    this.restSeconds = 90,
   });
 
   factory ExercisePivot.fromJson(Map<String, dynamic> json) => ExercisePivot(
@@ -22,6 +24,7 @@ class ExercisePivot {
         warmupSets: json['warmup_sets'] != null ? (json['warmup_sets'] as num).toInt() : 0,
         warmupReps: json['warmup_reps'] as String?,
         supersetGroup: json['superset_group'] != null ? (json['superset_group'] as num).toInt() : null,
+        restSeconds: json['rest_seconds'] != null ? (json['rest_seconds'] as num).toInt() : 90,
       );
 
   /// "8-12" when repsMax is set, otherwise "12".

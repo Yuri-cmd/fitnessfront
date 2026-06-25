@@ -13,6 +13,14 @@ class ReorderSheet extends GetView<TrainingSessionController> {
       final exercises = controller.exerciseOrder;
       final lockedUntil = controller.currentExIdx.value;
 
+      // Map supersetGroup → ordinal label (SS 1, SS 2…)
+      final seenGroups = <int>[];
+      for (final ex in exercises) {
+        final g = ex.pivot?.supersetGroup;
+        if (g != null && !seenGroups.contains(g)) seenGroups.add(g);
+      }
+      final ssMap = {for (var i = 0; i < seenGroups.length; i++) seenGroups[i]: i + 1};
+
       return Container(
         color: Theme.of(context).colorScheme.surface,
         child: SafeArea(
@@ -60,33 +68,107 @@ class ReorderSheet extends GetView<TrainingSessionController> {
                     itemBuilder: (ctx, i) {
                       final Exercise ex = exercises[i];
                       final locked = i < lockedUntil;
-                      return ListTile(
+                      final group = ex.pivot?.supersetGroup;
+                      final ssOrdinal = group != null ? ssMap[group] : null;
+
+                      final isFirstInGroup = group != null &&
+                          (i == 0 ||
+                              exercises[i - 1].pivot?.supersetGroup != group);
+                      final isLastInGroup = group != null &&
+                          (i == exercises.length - 1 ||
+                              exercises[i + 1].pivot?.supersetGroup != group);
+
+                      return Column(
                         key: ValueKey(ex.id),
-                        leading: CircleAvatar(
-                          radius: 14,
-                          backgroundColor: locked
-                              ? AppColors.primary
-                              : AppColors.primary.withValues(alpha: 0.12),
-                          child: locked
-                              ? const Icon(Icons.check,
-                                  size: 14, color: Colors.white)
-                              : Text('${i + 1}',
-                                  style: const TextStyle(
-                                      fontSize: 12,
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // SS group header — only on first exercise of the group
+                          if (isFirstInGroup)
+                            Padding(
+                              padding:
+                                  const EdgeInsets.fromLTRB(4, 8, 0, 2),
+                              child: Row(
+                                children: [
+                                  Icon(Icons.link_rounded,
+                                      size: 11,
+                                      color: Colors.purple.shade600),
+                                  const SizedBox(width: 4),
+                                  Text(
+                                    'SS $ssOrdinal',
+                                    style: TextStyle(
+                                      fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: AppColors.primary)),
-                        ),
-                        title: Text(ex.name,
-                            style: TextStyle(
-                                fontWeight: FontWeight.w600,
-                                color: locked ? Colors.grey : null)),
-                        subtitle: Text(
-                          '${ex.pivot!.sets} series × ${ex.pivot!.reps} reps',
-                          style: const TextStyle(fontSize: 11),
-                        ),
-                        trailing: locked
-                            ? null
-                            : const Icon(Icons.drag_handle, color: Colors.grey),
+                                      color: Colors.purple.shade600,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Left accent bar for superset exercises
+                                if (group != null)
+                                  Container(
+                                    width: 3,
+                                    margin: EdgeInsets.only(
+                                      left: 4,
+                                      bottom: isLastInGroup ? 4 : 0,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: Colors.purple
+                                          .withValues(alpha: 0.35),
+                                      borderRadius: isLastInGroup
+                                          ? const BorderRadius.vertical(
+                                              bottom: Radius.circular(3))
+                                          : BorderRadius.zero,
+                                    ),
+                                  )
+                                else
+                                  const SizedBox(width: 7),
+                                Expanded(
+                                  child: ListTile(
+                                    contentPadding:
+                                        const EdgeInsets.symmetric(
+                                            horizontal: 10),
+                                    leading: CircleAvatar(
+                                      radius: 14,
+                                      backgroundColor: locked
+                                          ? AppColors.primary
+                                          : AppColors.primary
+                                              .withValues(alpha: 0.12),
+                                      child: locked
+                                          ? const Icon(Icons.check,
+                                              size: 14,
+                                              color: Colors.white)
+                                          : Text('${i + 1}',
+                                              style: const TextStyle(
+                                                  fontSize: 12,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: AppColors.primary)),
+                                    ),
+                                    title: Text(ex.name,
+                                        style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                            color:
+                                                locked ? Colors.grey : null)),
+                                    subtitle: Text(
+                                      '${ex.pivot!.sets} series × ${ex.pivot!.reps} reps',
+                                      style: const TextStyle(fontSize: 11),
+                                    ),
+                                    trailing: locked
+                                        ? null
+                                        : const Icon(Icons.drag_handle,
+                                            color: Colors.grey),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       );
                     },
                   ),
@@ -99,4 +181,3 @@ class ReorderSheet extends GetView<TrainingSessionController> {
     });
   }
 }
-

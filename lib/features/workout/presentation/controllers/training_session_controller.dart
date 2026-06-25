@@ -1,12 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:audioplayers/audioplayers.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:fit_tracker_app/core/services/live_activity_service.dart';
 import 'package:fit_tracker_app/features/workout/data/models/exercise_model.dart';
 import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart';
+import 'package:fit_tracker_app/features/workout/data/services/workout_service.dart';
 
 enum TrainingPhase { ready, resting, finished }
 
@@ -39,6 +42,10 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   final restTime = 180.obs;            // working set rest (user-adjustable, default 3 min)
   final currentRestDuration = 180.obs; // actual duration of the current rest period
   final isWarmupRest = false.obs;
+  final isRestWarning = false.obs;     // true when ≤10s remain in rest
+
+  // Last weights per exercise from previous sessions  {exerciseId → kg}
+  final _lastWeights = <int, double>{}.obs;
 
   final currentExIdx = 0.obs;
   final currentSetIdx = 0.obs;
@@ -55,31 +62,58 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   List<_Step> _steps = [];
   int _stepIdx = 0;
 
+  static const String _sessionKey = 'active_workout_session';
+
   // ── Init / dispose ─────────────────────────────────────────────────────────
   @override
   void onInit() {
     super.onInit();
     _buildSets();
     _sessionStart = DateTime.now();
-
-    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
-      elapsed.value = DateTime.now().difference(_sessionStart!).inSeconds;
-    });
-
     WidgetsBinding.instance.addObserver(this);
-    _autoFillCurrentWeight();
-
     if (Platform.isIOS) {
       AudioPlayer.global.setAudioContext(AudioContext(
         iOS: AudioContextIOS(category: AVAudioSessionCategory.ambient),
       ));
     }
+    _asyncInit();
+  }
+
+  Future<void> _asyncInit() async {
+    await Future.wait([_restoreProgress(), _fetchLastWeights()]);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      elapsed.value = DateTime.now().difference(_sessionStart!).inSeconds;
+    });
+    elapsed.value = DateTime.now().difference(_sessionStart!).inSeconds;
+    _autoFillCurrentWeight();
     _startLiveActivity();
   }
 
+  Future<void> _fetchLastWeights() async {
+    try {
+      final ids = exerciseOrder.map((e) => e.id).toList();
+      if (ids.isEmpty) return;
+      final response = await Get.find<WorkoutService>().getLastWeights(ids);
+      if (response.statusCode == 200) {
+        final data = response.data as Map<String, dynamic>;
+        _lastWeights.assignAll(
+          data.map((k, v) => MapEntry(int.parse(k), (v as num).toDouble())),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error fetching last weights: $e');
+    }
+  }
+
+  double? lastWeightFor(int exerciseId) => _lastWeights[exerciseId];
+
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
+    if (state == AppLifecycleState.paused) {
+      _saveProgress();
+    } else if (state == AppLifecycleState.detached) {
+      LiveActivityService.end();
+    } else if (state == AppLifecycleState.resumed) {
       if (phase.value == TrainingPhase.resting && restRemaining.value <= 0) {
         skipRest();
       } else if (phase.value == TrainingPhase.resting && _restEndTime != null) {
@@ -102,6 +136,86 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       }
     }
     super.onClose();
+  }
+
+  // ── Progress persistence ───────────────────────────────────────────────────
+  Future<void> _saveProgress() async {
+    if (phase.value == TrainingPhase.finished) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final setsData = List.generate(sets.length, (i) =>
+        List.generate(sets[i].length, (j) => {
+          'done': sets[i][j]['done'],
+          'weight': controllers[i][j].text,
+          'type': sets[i][j]['type'],
+        }),
+      );
+      await prefs.setString(_sessionKey, jsonEncode({
+        'routineId': routine.id,
+        'sessionStart': _sessionStart!.toIso8601String(),
+        'stepIdx': _stepIdx,
+        'restTime': restTime.value,
+        'sets': setsData,
+      }));
+    } catch (e) {
+      debugPrint('Error saving workout progress: $e');
+    }
+  }
+
+  Future<void> _restoreProgress() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_sessionKey);
+      if (raw == null) return;
+
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      if (data['routineId'] != routine.id) {
+        await prefs.remove(_sessionKey);
+        return;
+      }
+
+      final savedStart = DateTime.parse(data['sessionStart'] as String);
+      if (DateTime.now().difference(savedStart).inHours >= 6) {
+        await prefs.remove(_sessionKey);
+        return;
+      }
+
+      _sessionStart = savedStart;
+      _stepIdx = (data['stepIdx'] as num).toInt();
+      restTime.value = (data['restTime'] as num).toInt();
+
+      final savedSets = data['sets'] as List<dynamic>;
+      for (int i = 0; i < savedSets.length && i < sets.length; i++) {
+        final row = savedSets[i] as List<dynamic>;
+        for (int j = 0; j < row.length && j < sets[i].length; j++) {
+          final s = row[j] as Map<String, dynamic>;
+          sets[i][j]['done'] = s['done'] as bool;
+          controllers[i][j].text = (s['weight'] as String?) ?? '';
+        }
+      }
+      sets.refresh();
+
+      if (_stepIdx < _steps.length) {
+        currentExIdx.value = _steps[_stepIdx].exIdx;
+        currentSetIdx.value = _steps[_stepIdx].setIdx;
+      }
+
+      Get.snackbar(
+        'Sesión restaurada',
+        'Retomas donde lo dejaste.',
+        duration: const Duration(seconds: 3),
+        snackPosition: SnackPosition.BOTTOM,
+      );
+    } catch (e) {
+      debugPrint('Error restoring session: $e');
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_sessionKey);
+    }
+  }
+
+  Future<void> clearProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_sessionKey);
   }
 
   // ── Build sets (warmup first, then working) ────────────────────────────────
@@ -244,6 +358,20 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   double get progressPct =>
       exercises.isEmpty ? 0 : exDoneCount / exercises.length;
 
+  double get totalVolume {
+    double total = 0;
+    for (int i = 0; i < exercises.length; i++) {
+      final pivot = exercises[i].pivot!;
+      for (int j = pivot.warmupSets; j < sets[i].length; j++) {
+        final w = double.tryParse(
+                controllers[i][j].text.replaceAll(',', '.')) ??
+            0;
+        total += w * pivot.reps;
+      }
+    }
+    return total;
+  }
+
   String get nextActionLabel {
     if (isLastOfAll) return 'TERMINAR';
     if (_steps[_stepIdx].skipRestAfter) return 'SUPERSERIE →';
@@ -314,20 +442,23 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     if (isLastOfAll) {
       phase.value = TrainingPhase.finished;
       LiveActivityService.end();
+      clearProgress();
     } else if (_steps[_stepIdx].skipRestAfter) {
       // Superset transition: advance immediately, no rest.
       _advanceSet();
       phase.value = TrainingPhase.ready;
       _updateLiveActivity(isResting: false);
+      _saveProgress();
     } else {
       phase.value = TrainingPhase.resting;
       isWarmupRest.value = wasWarmup;
-      final restSecs = wasWarmup ? 60 : restTime.value;
+      final restSecs = wasWarmup ? 60 : (currentEx?.pivot?.restSeconds ?? restTime.value);
       currentRestDuration.value = restSecs;
       restRemaining.value = restSecs;
       _restEndTime = DateTime.now().add(Duration(seconds: restSecs));
       _startRestTimer();
       _updateLiveActivity(isResting: true);
+      _saveProgress();
     }
   }
 
@@ -343,6 +474,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     _restTimer?.cancel();
     _restTimer = null;
     isWarmupRest.value = false;
+    isRestWarning.value = false;
     phase.value = TrainingPhase.ready;
     _advanceSet();
     _updateLiveActivity(isResting: false);
@@ -361,6 +493,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
         (currentRestDuration.value + delta).clamp(5, 300);
     _restEndTime = DateTime.now().add(Duration(seconds: newRemaining));
     restRemaining.value = newRemaining;
+    if (newRemaining > 10) isRestWarning.value = false;
     _updateLiveActivity(isResting: true);
   }
 
@@ -423,8 +556,14 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     _restTimer?.cancel();
     _restTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (_restEndTime != null) {
+        final prev = restRemaining.value;
         restRemaining.value =
             _restEndTime!.difference(DateTime.now()).inSeconds.clamp(0, 9999);
+        // Trigger haptic warning once when crossing the 10 s threshold
+        if (!isRestWarning.value && prev > 10 && restRemaining.value <= 10) {
+          isRestWarning.value = true;
+          HapticFeedback.mediumImpact();
+        }
       }
       if (restRemaining.value <= 0) {
         _restTimer?.cancel();

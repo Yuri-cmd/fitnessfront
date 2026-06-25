@@ -69,4 +69,11 @@ class WorkoutService {
   Future<Response> getWorkoutHistory() async {
     return await _dio.get('/workouts/history');
   }
+
+  Future<Response> getLastWeights(List<int> exerciseIds) async {
+    return await _dio.get(
+      '/exercises/last-weights',
+      queryParameters: {'ids[]': exerciseIds},
+    );
+  }
 }

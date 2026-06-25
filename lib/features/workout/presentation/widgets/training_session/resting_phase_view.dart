@@ -69,26 +69,49 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
             ),
             const SizedBox(height: 8),
 
-            // Timer — usa color explícito para ser visible en modo oscuro
-            Text(
-              controller.formatTime(controller.restRemaining.value),
+            // Timer — turns orange in the last 10 s
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 300),
               style: TextStyle(
                 fontSize: 72,
                 fontWeight: FontWeight.w900,
-                color: colorScheme.onSurface,
+                color: controller.isRestWarning.value
+                    ? Colors.orange.shade600
+                    : colorScheme.onSurface,
                 fontFeatures: const [FontFeature.tabularFigures()],
               ),
+              child: Text(
+                controller.formatTime(controller.restRemaining.value),
+              ),
             ),
+            if (controller.isRestWarning.value)
+              Padding(
+                padding: const EdgeInsets.only(top: 2, bottom: 2),
+                child: Text(
+                  '¡PREPÁRATE!',
+                  style: TextStyle(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.orange.shade600,
+                    letterSpacing: 2,
+                  ),
+                ),
+              ),
             const SizedBox(height: 16),
 
             ClipRRect(
               borderRadius: BorderRadius.circular(6),
-              child: LinearProgressIndicator(
-                value: restPct.clamp(0.0, 1.0),
-                minHeight: 8,
-                backgroundColor:
-                    colorScheme.onSurface.withValues(alpha: 0.08),
-                color: AppColors.primary,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 300),
+                child: LinearProgressIndicator(
+                  value: restPct.clamp(0.0, 1.0),
+                  minHeight: 8,
+                  backgroundColor:
+                      colorScheme.onSurface.withValues(alpha: 0.08),
+                  color: controller.isRestWarning.value
+                      ? Colors.orange.shade500
+                      : AppColors.primary,
+                ),
               ),
             ),
 

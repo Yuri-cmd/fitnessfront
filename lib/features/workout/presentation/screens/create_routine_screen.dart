@@ -35,6 +35,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           'warmup_sets': ex.pivot?.warmupSets ?? 0,
           'warmup_reps': ex.pivot?.warmupReps,
           'superset_group': ex.pivot?.supersetGroup,
+          'rest_seconds': ex.pivot?.restSeconds ?? 90,
         });
       }
     }
@@ -285,6 +286,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         onAdded: (ex) => setState(() => _exercises.add({
               ...ex,
               'superset_group': null,
+              'rest_seconds': 90,
             })),
       ),
       isScrollControlled: true,
@@ -302,6 +304,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
         TextEditingController(text: (ex['warmup_sets'] ?? 0).toString());
     final warmupRepsCtrl =
         TextEditingController(text: ex['warmup_reps'] ?? '');
+    final restCtrl =
+        TextEditingController(text: (ex['rest_seconds'] ?? 90).toString());
 
     Get.dialog(AlertDialog(
       title: Text('EDITAR: ${ex['name']}'),
@@ -364,6 +368,25 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                 ),
               ],
             ),
+            const SizedBox(height: 20),
+            const _SectionLabel('DESCANSO ENTRE SERIES'),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: restCtrl,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Segundos',
+                      hintText: '90',
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Text('seg',
+                    style: TextStyle(color: Colors.grey, fontSize: 13)),
+              ],
+            ),
           ],
         ),
       ),
@@ -384,6 +407,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                   warmupRepsCtrl.text.trim().isEmpty
                       ? null
                       : warmupRepsCtrl.text.trim();
+              _exercises[index]['rest_seconds'] =
+                  (int.tryParse(restCtrl.text) ?? 90).clamp(5, 600);
             });
             Get.back();
           },
@@ -499,8 +524,14 @@ class _ExerciseTile extends StatelessWidget {
     final repsMax = exercise['reps_max'] as int?;
     final repsDisplay = repsMax != null ? '$reps-$repsMax' : '$reps';
     final warmupLabel = warmupSets > 0 ? '$warmupSets aprox. + ' : '';
+    final restSecs = (exercise['rest_seconds'] as int?) ?? 90;
+    final restLabel = restSecs < 60
+        ? '${restSecs}s'
+        : restSecs % 60 == 0
+            ? '${restSecs ~/ 60}min'
+            : '${restSecs ~/ 60}min ${restSecs % 60}s';
     final subtitle =
-        '$warmupLabel${exercise['sets']} series × $repsDisplay reps';
+        '$warmupLabel${exercise['sets']} series × $repsDisplay reps  ·  $restLabel descanso';
 
     return Card(
       margin: const EdgeInsets.only(bottom: 8),

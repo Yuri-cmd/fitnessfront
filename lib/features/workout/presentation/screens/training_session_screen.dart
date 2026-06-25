@@ -22,6 +22,7 @@ class TrainingSessionScreen extends StatelessWidget {
         if (didPop) return;
         final leave = await _confirmExit();
         if (leave == true) {
+          await Get.find<TrainingSessionController>().clearProgress();
           Get.delete<TrainingSessionController>();
           Get.back(result: null);
         }
@@ -106,6 +107,7 @@ class TrainingSessionScreen extends StatelessWidget {
             onPressed: () async {
               final leave = await _confirmExit();
               if (leave == true) {
+                await Get.find<TrainingSessionController>().clearProgress();
                 Get.delete<TrainingSessionController>();
                 Get.back(result: null);
               }

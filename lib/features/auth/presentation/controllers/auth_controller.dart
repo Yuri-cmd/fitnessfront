@@ -41,10 +41,11 @@ class AuthController extends GetxController {
   }
 
   Future<void> _forceLogout() async {
+    if (!isAuthenticated.value) return;
+    isAuthenticated.value = false;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(AppConstants.authTokenKey);
     await prefs.remove(AppConstants.userNameKey);
-    isAuthenticated.value = false;
     userName.value = 'Atleta';
     Get.snackbar(
       'Sesión expirada',

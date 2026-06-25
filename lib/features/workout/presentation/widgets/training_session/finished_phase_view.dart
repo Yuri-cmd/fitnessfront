@@ -3,6 +3,35 @@ import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
+class _StatChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  const _StatChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.primary),
+          const SizedBox(width: 5),
+          Text(label,
+              style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: AppColors.primary)),
+        ],
+      ),
+    );
+  }
+}
+
 class FinishedPhaseView extends GetView<TrainingSessionController> {
   const FinishedPhaseView({super.key});
 
@@ -36,10 +65,27 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
               style: const TextStyle(fontSize: 26, fontWeight: FontWeight.w900),
               textAlign: TextAlign.center,
             ),
-            const SizedBox(height: 6),
-            Text(
-              '${controller.exercises.length} ejercicios  ·  ${controller.formatTime(controller.elapsed.value)}',
-              style: const TextStyle(color: Colors.grey),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _StatChip(
+                  icon: Icons.fitness_center,
+                  label: '${controller.exercises.length} ejerc.',
+                ),
+                const SizedBox(width: 10),
+                _StatChip(
+                  icon: Icons.timer_outlined,
+                  label: controller.formatTime(controller.elapsed.value),
+                ),
+                if (controller.totalVolume > 0) ...[
+                  const SizedBox(width: 10),
+                  _StatChip(
+                    icon: Icons.local_fire_department_outlined,
+                    label: '${controller.totalVolume.toStringAsFixed(0)} kg',
+                  ),
+                ],
+              ],
             ),
             const SizedBox(height: 28),
             // Resumen

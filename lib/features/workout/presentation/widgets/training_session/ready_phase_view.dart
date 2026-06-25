@@ -19,6 +19,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
       final currentExIdx = controller.currentExIdx.value;
       final currentSetIdx = controller.currentSetIdx.value;
       final isWarmup = controller.isCurrentSetWarmup;
+      final isLastWorkingSet = !isWarmup && controller.isLastSet;
 
       final warmupNum = isWarmup ? currentSetIdx + 1 : 0;
       final workingNum = isWarmup ? 0 : currentSetIdx - numWarmup + 1;
@@ -106,6 +107,34 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                               ),
                             ),
                           ],
+                          if (isLastWorkingSet) ...[
+                            const SizedBox(width: 8),
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 8, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.local_fire_department,
+                                      size: 9,
+                                      color: Colors.amber.shade700),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    '¡ÚLTIMA!',
+                                    style: TextStyle(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: Colors.amber.shade700,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -157,13 +186,17 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                       Text(
                         isWarmup
                             ? 'APROX. $warmupNum DE $numWarmup'
-                            : 'SERIE $workingNum DE $numWorking',
+                            : isLastWorkingSet
+                                ? '¡ÚLTIMA SERIE!'
+                                : 'SERIE $workingNum DE $numWorking',
                         style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.bold,
                             color: isWarmup
                                 ? Colors.orange.shade600
-                                : Colors.grey),
+                                : isLastWorkingSet
+                                    ? Colors.amber.shade700
+                                    : Colors.grey),
                       ),
                       const SizedBox(height: 16),
                       // Reps display
@@ -254,9 +287,15 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                         ],
                       ),
                       const SizedBox(height: 6),
-                      const Text('peso utilizado (opcional)',
-                          style:
-                              TextStyle(fontSize: 11, color: Colors.grey)),
+                      Text(
+                        () {
+                          final lastW = controller.lastWeightFor(ex.id);
+                          return lastW != null
+                              ? 'última sesión: ${lastW.toStringAsFixed(1)} kg  ·  opcional'
+                              : 'peso utilizado (opcional)';
+                        }(),
+                        style: const TextStyle(fontSize: 11, color: Colors.grey),
+                      ),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
@@ -288,7 +327,9 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                                     ? 'COMPLETAR APROX.'
                                     : controller.isNextStepSupersetTransition
                                         ? 'COMPLETAR → SUPERSERIE'
-                                        : 'COMPLETAR SERIE',
+                                        : isLastWorkingSet
+                                            ? 'COMPLETAR ÚLTIMA SERIE'
+                                            : 'COMPLETAR SERIE',
                                 style: const TextStyle(
                                     fontSize: 16,
                                     fontWeight: FontWeight.w900),
