@@ -141,16 +141,19 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                       Text(
                         ex.name,
                         style: const TextStyle(
-                            fontSize: 22, fontWeight: FontWeight.w900),
+                            fontSize: 26, fontWeight: FontWeight.w900, height: 1.1),
                       ),
                       if (ex.muscleGroup != null)
-                        Text(ex.muscleGroup!,
-                            style: const TextStyle(
-                                color: Colors.grey, fontSize: 12)),
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(ex.muscleGroup!,
+                              style: TextStyle(
+                                  color: Colors.grey.shade500, fontSize: 12)),
+                        ),
                     ],
                   ),
                 ),
-                const Divider(height: 1, color: Color(0xFFF5F5F5)),
+                Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)),
                 Padding(
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 20),
@@ -286,16 +289,44 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        () {
-                          final lastW = controller.lastWeightFor(ex.id);
-                          return lastW != null
-                              ? 'última sesión: ${lastW.toStringAsFixed(1)} kg  ·  opcional'
-                              : 'peso utilizado (opcional)';
-                        }(),
-                        style: const TextStyle(fontSize: 11, color: Colors.grey),
-                      ),
+                      const SizedBox(height: 8),
+                      Builder(builder: (ctx) {
+                        final lastW = controller.lastWeightFor(ex.id);
+                        if (lastW != null) {
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.08),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(Icons.history_rounded,
+                                    size: 12,
+                                    color: AppColors.secondary
+                                        .withValues(alpha: 0.7)),
+                                const SizedBox(width: 5),
+                                Text(
+                                  'última sesión: ${lastW.toStringAsFixed(1)} kg',
+                                  style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.secondary
+                                          .withValues(alpha: 0.8)),
+                                ),
+                              ],
+                            ),
+                          );
+                        }
+                        return Text(
+                          'peso utilizado (opcional)',
+                          style: TextStyle(
+                              fontSize: 11,
+                              color: Colors.grey.withValues(alpha: 0.6)),
+                        );
+                      }),
                       const SizedBox(height: 20),
                       SizedBox(
                         width: double.infinity,
