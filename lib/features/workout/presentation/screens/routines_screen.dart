@@ -13,6 +13,8 @@ import 'package:fit_tracker_app/features/workout/presentation/screens/training_s
 import 'package:fit_tracker_app/features/workout/presentation/screens/streak_celebration_screen.dart';
 import 'package:fit_tracker_app/features/workout/presentation/screens/one_rm_screen.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/features/onboarding/presentation/widgets/onboarding_view.dart';
+import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
 class RoutinesScreen extends StatefulWidget {
   const RoutinesScreen({super.key});
@@ -25,12 +27,19 @@ class _RoutinesScreenState extends State<RoutinesScreen>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   late final WorkoutController _c;
+  int? _activeSessionRoutineId;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _c = Get.find<WorkoutController>();
+    _checkForSavedSession();
+  }
+
+  Future<void> _checkForSavedSession() async {
+    final id = await TrainingSessionController.getSavedRoutineId();
+    if (id != null && mounted) setState(() => _activeSessionRoutineId = id);
   }
 
   @override
@@ -54,7 +63,7 @@ class _RoutinesScreenState extends State<RoutinesScreen>
         bottom: TabBar(
           controller: _tabController,
           labelColor: AppColors.primary,
-          unselectedLabelColor: Colors.grey,
+          unselectedLabelColor: Theme.of(context).colorScheme.onSurfaceVariant,
           indicatorColor: AppColors.primary,
           tabs: const [
             Tab(text: 'MIS PLANES', icon: Icon(Icons.fitness_center)),
@@ -68,11 +77,41 @@ class _RoutinesScreenState extends State<RoutinesScreen>
         backgroundColor: AppColors.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: TabBarView(
-        controller: _tabController,
+      body: Column(
         children: [
-          _RoutinesTab(onStart: _startTraining),
-          _HistoryTab(controller: _c),
+          if (_activeSessionRoutineId != null)
+            _ActiveSessionBanner(
+              onResume: () {
+                final routine = _c.routines.firstWhereOrNull(
+                    (r) => r.id == _activeSessionRoutineId);
+                if (routine != null) {
+                  setState(() => _activeSessionRoutineId = null);
+                  _startTraining(routine);
+                } else if (_c.isLoading.value) {
+                  Get.snackbar(
+                    'Cargando...',
+                    'Espera un momento y vuelve a intentarlo.',
+                    snackPosition: SnackPosition.BOTTOM,
+                    margin: const EdgeInsets.all(16),
+                    borderRadius: 12,
+                    duration: const Duration(seconds: 2),
+                  );
+                }
+              },
+              onDiscard: () async {
+                await TrainingSessionController.clearSavedSession();
+                if (mounted) setState(() => _activeSessionRoutineId = null);
+              },
+            ),
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _RoutinesTab(onStart: _startTraining),
+                _HistoryTab(controller: _c),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -104,7 +143,10 @@ class _RoutinesScreenState extends State<RoutinesScreen>
       () => TrainingSessionScreen(routine: routine),
     );
 
-    if (result is List && mounted) {
+    if (result is Map && mounted) {
+      final sets = List<Map<String, dynamic>>.from(result['sets'] as List);
+      final startTime = result['startTime'] as DateTime?;
+
       final streakData = _c.computeStreakData(routineId: routine.id);
       final userName = Get.find<AuthController>().userName.value;
 
@@ -114,12 +156,7 @@ class _RoutinesScreenState extends State<RoutinesScreen>
             userName: userName,
           ));
 
-      unawaited(_c
-          .completeRoutine(
-            routine.id,
-            List<Map<String, dynamic>>.from(result),
-          )
-          .then((_) => _c.loadWorkoutHistory()));
+      unawaited(_c.completeRoutine(routine.id, sets, startTime));
     }
   }
 }
@@ -137,15 +174,21 @@ class _RoutinesTab extends StatelessWidget {
         return const Center(child: CircularProgressIndicator());
       }
       if (c.routines.isEmpty && !c.showArchived.value) {
+        // New user: no routines and no history — show onboarding
+        if (c.workoutLogs.isEmpty) {
+          return OnboardingView(
+            onCreate: () => Get.to(() => const CreateRoutineScreen()),
+          );
+        }
         return WorkoutEmptyState(
           icon: Icons.fitness_center_outlined,
           title: 'No hay rutinas creadas',
           subtitle: 'Empieza creando tu primer plan de entrenamiento',
           action: TextButton.icon(
-                  onPressed: c.toggleArchived,
-                  icon: const Icon(Icons.archive_outlined),
-                  label: const Text('VER ARCHIVADAS'),
-                ),
+            onPressed: c.toggleArchived,
+            icon: const Icon(Icons.archive_outlined),
+            label: const Text('VER ARCHIVADAS'),
+          ),
         );
       }
       return ListView(
@@ -173,9 +216,10 @@ class _RoutinesTab extends StatelessWidget {
                 ? 'OCULTAR ARCHIVADAS'
                 : 'VER RUTINAS ARCHIVADAS'),
             style: OutlinedButton.styleFrom(
-              foregroundColor: Colors.grey,
-              side: const BorderSide(color: Colors.grey),
-              minimumSize: const Size(double.infinity, 44),
+              foregroundColor: Theme.of(context).colorScheme.onSurfaceVariant,
+              side: BorderSide(
+                  color: Theme.of(context).colorScheme.outlineVariant),
+              minimumSize: const Size(double.infinity, 48),
             ),
           ),
 
@@ -184,14 +228,16 @@ class _RoutinesTab extends StatelessWidget {
             const SizedBox(height: 20),
             Row(
               children: [
-                const Icon(Icons.archive_outlined, size: 16, color: Colors.grey),
+                Icon(Icons.archive_outlined,
+                    size: 16,
+                    color: Theme.of(context).colorScheme.onSurfaceVariant),
                 const SizedBox(width: 6),
-                const Text(
+                Text(
                   'ARCHIVADAS',
                   style: TextStyle(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
-                      color: Colors.grey,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                       letterSpacing: 1),
                 ),
                 const Spacer(),
@@ -205,12 +251,13 @@ class _RoutinesTab extends StatelessWidget {
             ),
             const SizedBox(height: 12),
             if (!c.isLoadingArchived.value && c.archivedRoutines.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 16),
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 16),
                 child: Center(
                   child: Text(
                     'No hay rutinas archivadas',
-                    style: TextStyle(color: Colors.grey),
+                    style: TextStyle(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant),
                   ),
                 ),
               )
@@ -265,6 +312,9 @@ class _HistoryTab extends StatelessWidget {
         const Divider(height: 1),
         Expanded(
           child: Obx(() {
+            if (controller.isLoading.value && controller.workoutLogs.isEmpty) {
+              return const Center(child: CircularProgressIndicator());
+            }
             if (controller.workoutLogs.isEmpty) {
               return WorkoutEmptyState(
                 icon: Icons.calendar_month_outlined,
@@ -286,10 +336,11 @@ class _HistoryTab extends StatelessWidget {
             }).toList();
 
             if (filtered.isEmpty) {
-              return const Center(
+              return Center(
                 child: Text(
                   'No entrenaste este día',
-                  style: TextStyle(color: Colors.grey),
+                  style: TextStyle(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant),
                 ),
               );
             }
@@ -305,6 +356,63 @@ class _HistoryTab extends StatelessWidget {
           }),
         ),
       ],
+    );
+  }
+}
+
+class _ActiveSessionBanner extends StatelessWidget {
+  final VoidCallback onResume;
+  final VoidCallback onDiscard;
+  const _ActiveSessionBanner(
+      {required this.onResume, required this.onDiscard});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.12),
+      child: InkWell(
+        onTap: onResume,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.fitness_center_rounded,
+                    size: 18, color: Colors.black87),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Sesión activa',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: AppColors.primary)),
+                    Text('Toca para continuar tu entrenamiento',
+                        style: TextStyle(
+                            fontSize: 11,
+                            color: AppColors.primary)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                color: AppColors.primary.withValues(alpha: 0.55),
+                tooltip: 'Descartar sesión',
+                onPressed: onDiscard,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

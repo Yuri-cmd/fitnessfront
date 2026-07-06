@@ -12,6 +12,15 @@ class TrainingSessionScreen extends StatelessWidget {
   final Routine routine;
   const TrainingSessionScreen({super.key, required this.routine});
 
+  Future<void> _doExit() async {
+    final leave = await _confirmExit();
+    if (leave == true) {
+      await Get.find<TrainingSessionController>().clearProgress();
+      Get.delete<TrainingSessionController>();
+      Get.back(result: null);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final controller = Get.put(TrainingSessionController(routine: routine));
@@ -20,34 +29,49 @@ class TrainingSessionScreen extends StatelessWidget {
       canPop: false,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
-        final leave = await _confirmExit();
-        if (leave == true) {
-          await Get.find<TrainingSessionController>().clearProgress();
-          Get.delete<TrainingSessionController>();
-          Get.back(result: null);
-        }
+        await _doExit();
       },
       child: Scaffold(
+        backgroundColor: const Color(0xFFEEEEEE),
         body: SafeArea(
-          child: Obx(() {
-            if (controller.phase.value == TrainingPhase.finished) {
-              return const FinishedPhaseView();
-            }
-            return Column(
-              children: [
-                _buildHeader(controller),
-                _buildProgressBar(context, controller),
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 20),
-                    child: controller.phase.value == TrainingPhase.resting
-                        ? const RestingPhaseView()
-                        : const ReadyPhaseView(),
+          child: Obx(() => AnimatedSwitcher(
+            duration: const Duration(milliseconds: 480),
+            transitionBuilder: (child, animation) => FadeTransition(
+              opacity: CurvedAnimation(
+                  parent: animation, curve: Curves.easeInOutCubic),
+              child: child,
+            ),
+            child: controller.phase.value == TrainingPhase.finished
+                ? const FinishedPhaseView(key: ValueKey('finished'))
+                : Column(
+                    key: const ValueKey('active'),
+                    children: [
+                      _buildHeader(controller, context),
+                      _buildProgressBar(context, controller),
+                      Expanded(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 400),
+                          transitionBuilder: (child, animation) =>
+                              FadeTransition(
+                            opacity: CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInOutCubic),
+                            child: child,
+                          ),
+                          child: SingleChildScrollView(
+                            key: ValueKey(controller.phase.value),
+                            padding:
+                                const EdgeInsets.fromLTRB(20, 12, 20, 20),
+                            child:
+                                controller.phase.value == TrainingPhase.resting
+                                    ? const RestingPhaseView()
+                                    : const ReadyPhaseView(),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
-            );
-          }),
+          )),
         ),
       ),
     );
@@ -71,7 +95,7 @@ class TrainingSessionScreen extends StatelessWidget {
         ),
       );
 
-  Widget _buildHeader(TrainingSessionController c) {
+  Widget _buildHeader(TrainingSessionController c, BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(20, 16, 8, 0),
       child: Row(
@@ -83,14 +107,37 @@ class TrainingSessionScreen extends StatelessWidget {
                 Text(
                   routine.name.toUpperCase(),
                   style: const TextStyle(
-                    fontSize: 20,
+                    fontSize: 18,
                     fontWeight: FontWeight.w900,
-                    letterSpacing: 1,
+                    letterSpacing: 0.5,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                Obx(() => Text(
-                      c.formatTime(c.elapsed.value),
-                      style: const TextStyle(color: Colors.grey, fontSize: 13),
+                const SizedBox(height: 5),
+                Obx(() => Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.timer_outlined,
+                              size: 13, color: AppColors.primary),
+                          const SizedBox(width: 4),
+                          Text(
+                            c.formatTime(c.elapsed.value),
+                            style: const TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
                     )),
               ],
             ),
@@ -104,14 +151,7 @@ class TrainingSessionScreen extends StatelessWidget {
             icon: const Icon(Icons.reorder),
           ),
           IconButton(
-            onPressed: () async {
-              final leave = await _confirmExit();
-              if (leave == true) {
-                await Get.find<TrainingSessionController>().clearProgress();
-                Get.delete<TrainingSessionController>();
-                Get.back(result: null);
-              }
-            },
+            onPressed: _doExit,
             icon: const Icon(Icons.close),
           ),
         ],

@@ -12,7 +12,8 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
       final ex = controller.currentEx;
       if (ex == null) return const SizedBox();
 
-      final pivot = ex.pivot!;
+      final pivot = ex.pivot;
+      if (pivot == null) return const SizedBox();
       final numWarmup = pivot.warmupSets;
       final numWorking = pivot.sets;
       final totalSets = pivot.totalSets;
@@ -33,8 +34,8 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
               borderRadius: BorderRadius.circular(24),
               boxShadow: [
                 BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 12,
+                    color: Colors.black.withValues(alpha: 0.10),
+                    blurRadius: 18,
                     offset: const Offset(0, 4))
               ],
             ),
@@ -45,23 +46,25 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Row(
+                      Wrap(
+                        spacing: 6,
+                        runSpacing: 6,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
                           Text(
                             'EJERCICIO ${currentExIdx + 1} DE ${controller.exercises.length}',
                             style: const TextStyle(
-                                fontSize: 10,
+                                fontSize: 11,
                                 fontWeight: FontWeight.bold,
                                 color: AppColors.primary),
                           ),
-                          if (numWarmup > 0) ...[
-                            const SizedBox(width: 8),
+                          if (numWarmup > 0)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
                                 color: isWarmup
-                                    ? Colors.orange.withValues(alpha: 0.15)
+                                    ? AppColors.warning.withValues(alpha: 0.15)
                                     : AppColors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -70,71 +73,67 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                                     ? 'APROX. $warmupNum/$numWarmup'
                                     : 'EFECTIVA $workingNum/$numWorking',
                                 style: TextStyle(
-                                  fontSize: 9,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   color: isWarmup
-                                      ? Colors.orange.shade700
+                                      ? AppColors.warning
                                       : AppColors.primary,
                                 ),
                               ),
                             ),
-                          ],
-                          if (controller.isInSuperset) ...[
-                            const SizedBox(width: 8),
+                          if (controller.isInSuperset)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.purple.withValues(alpha: 0.12),
+                                color: AppColors.supersetAccent
+                                    .withValues(alpha: 0.12),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.link_rounded,
-                                      size: 9,
-                                      color: Colors.purple.shade600),
+                                      size: 11,
+                                      color: AppColors.supersetAccent),
                                   const SizedBox(width: 3),
                                   Text(
                                     'SUPERSERIE',
                                     style: TextStyle(
-                                      fontSize: 9,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.purple.shade600,
+                                      color: AppColors.supersetAccent,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
-                          if (isLastWorkingSet) ...[
-                            const SizedBox(width: 8),
+                          if (isLastWorkingSet)
                             Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 2),
+                                  horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
-                                color: Colors.amber.withValues(alpha: 0.15),
+                                color: AppColors.warning.withValues(alpha: 0.15),
                                 borderRadius: BorderRadius.circular(8),
                               ),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   Icon(Icons.local_fire_department,
-                                      size: 9,
-                                      color: Colors.amber.shade700),
+                                      size: 11,
+                                      color: AppColors.warning),
                                   const SizedBox(width: 3),
                                   Text(
                                     '¡ÚLTIMA!',
                                     style: TextStyle(
-                                      fontSize: 9,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.amber.shade700,
+                                      color: AppColors.warning,
                                     ),
                                   ),
                                 ],
                               ),
                             ),
-                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -142,6 +141,8 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                         ex.name,
                         style: const TextStyle(
                             fontSize: 26, fontWeight: FontWeight.w900, height: 1.1),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (ex.muscleGroup != null)
                         Padding(
@@ -154,7 +155,15 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                   ),
                 ),
                 Divider(height: 1, color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.06)),
-                Padding(
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 320),
+                  transitionBuilder: (child, animation) => FadeTransition(
+                    opacity: CurvedAnimation(
+                        parent: animation, curve: Curves.easeInOutCubic),
+                    child: child,
+                  ),
+                  child: Padding(
+                  key: ValueKey('ex${currentExIdx}s$currentSetIdx'),
                   padding: const EdgeInsets.symmetric(
                       horizontal: 20, vertical: 20),
                   child: Column(
@@ -175,7 +184,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                             decoration: BoxDecoration(
                               color: isDoneSet || isCurSet
                                   ? (isWarmupDot
-                                      ? Colors.orange.withValues(alpha: 0.65)
+                                      ? AppColors.warning.withValues(alpha: 0.65)
                                       : AppColors.primary)
                                   : Theme.of(context)
                                       .colorScheme
@@ -193,12 +202,12 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                                 ? '¡ÚLTIMA SERIE!'
                                 : 'SERIE $workingNum DE $numWorking',
                         style: TextStyle(
-                            fontSize: 10,
+                            fontSize: 11,
                             fontWeight: FontWeight.bold,
                             color: isWarmup
-                                ? Colors.orange.shade600
+                                ? AppColors.warning
                                 : isLastWorkingSet
-                                    ? Colors.amber.shade700
+                                    ? AppColors.warning
                                     : Colors.grey),
                       ),
                       const SizedBox(height: 16),
@@ -226,9 +235,9 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                           padding: const EdgeInsets.only(top: 4),
                           child: Text(
                             'PESO LIVIANO – SIN LLEGAR AL FALLO',
-                            style: TextStyle(
+                            style: const TextStyle(
                                 fontSize: 10,
-                                color: Colors.orange.shade600,
+                                color: AppColors.warning,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: 0.5),
                           ),
@@ -269,7 +278,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                                 borderRadius: BorderRadius.circular(16),
                                 borderSide: BorderSide(
                                     color: isWarmup
-                                        ? Colors.orange
+                                        ? AppColors.warning
                                         : AppColors.primary,
                                     width: 2),
                               ),
@@ -334,9 +343,11 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                           onPressed: controller.completeSet,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isWarmup
-                                ? Colors.orange.shade600
+                                ? AppColors.warning
                                 : AppColors.primary,
-                            foregroundColor: Colors.white,
+                            foregroundColor: isWarmup
+                                ? Colors.white
+                                : AppColors.onPrimary,
                             padding:
                                 const EdgeInsets.symmetric(vertical: 18),
                             shape: RoundedRectangleBorder(
@@ -400,6 +411,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                         ],
                       ),
                     ],
+                  ),
                   ),
                 ),
               ],

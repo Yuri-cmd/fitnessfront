@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
@@ -24,6 +25,7 @@ class AuthController extends GetxController {
   final isBiometricAvailable = false.obs;
 
   late final StreamSubscription<void> _unauthorizedSub;
+  StreamSubscription<String>? _fcmRefreshSub;
 
   AuthController(this._authService);
 
@@ -37,6 +39,7 @@ class AuthController extends GetxController {
   @override
   void onClose() {
     _unauthorizedSub.cancel();
+    _fcmRefreshSub?.cancel();
     super.onClose();
   }
 
@@ -67,7 +70,7 @@ class AuthController extends GetxController {
         isBiometricEnabled.value && isBiometricAvailable.value;
     isAuthenticated.value = token != null && !hasBiometric;
     isInitialized.value = true;
-    if (token != null) debugPrint('🔑 AUTH TOKEN (stored): $token');
+    debugPrint('🔑 AUTH TOKEN (stored): ${token != null ? "[set]" : "[empty]"}');
   }
 
   Future<void> setBiometricEnabled(bool enabled) async {
@@ -141,7 +144,7 @@ class AuthController extends GetxController {
         final auth = AuthResponse.fromJson(response.data as Map<String, dynamic>);
         final token = auth.token;
         final loadedName = auth.name;
-        debugPrint('🔑 AUTH TOKEN: $token');
+        debugPrint('🔑 AUTH TOKEN: ${token.isNotEmpty ? "[set]" : "[empty]"}');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString(AppConstants.authTokenKey, token);
         await prefs.setString(AppConstants.userNameKey, loadedName);
@@ -210,6 +213,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> _registerFcmToken() async {
+    if (!Platform.isIOS) return;
     try {
       final settings = await FirebaseMessaging.instance.requestPermission();
       debugPrint('📲 FCM permission: ${settings.authorizationStatus}');
@@ -217,7 +221,8 @@ class AuthController extends GetxController {
       final token = await FirebaseMessaging.instance.getToken();
       debugPrint('📱 FCM TOKEN: $token');
       if (token != null) await _authService.saveFcmToken(token);
-      FirebaseMessaging.instance.onTokenRefresh
+      _fcmRefreshSub?.cancel();
+      _fcmRefreshSub = FirebaseMessaging.instance.onTokenRefresh
           .listen((t) => _authService.saveFcmToken(t));
     } catch (e) {
       debugPrint('FCM register error: $e');
@@ -225,6 +230,7 @@ class AuthController extends GetxController {
   }
 
   Future<void> _unregisterFcmToken() async {
+    if (!Platform.isIOS) return;
     try {
       final token = await FirebaseMessaging.instance.getToken();
       if (token != null) await _authService.removeFcmToken(token);

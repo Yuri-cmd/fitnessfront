@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/features/workout/data/models/exercise_model.dart';
 import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart';
@@ -7,6 +6,10 @@ import 'package:fit_tracker_app/features/workout/data/services/workout_service.d
 import 'package:fit_tracker_app/features/workout/domain/streak_calculator.dart';
 import 'package:fit_tracker_app/core/services/health_service.dart';
 import 'package:fit_tracker_app/core/services/app_flags.dart';
+import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
+import 'package:fit_tracker_app/features/streak/presentation/controllers/streak_controller.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:flutter/material.dart';
 
 class WorkoutController extends GetxController {
   final WorkoutService _workoutService;
@@ -28,8 +31,22 @@ class WorkoutController extends GetxController {
   @override
   void onInit() {
     super.onInit();
-    loadRoutines();
-    loadWorkoutHistory();
+    final auth = Get.find<AuthController>();
+    ever(auth.isAuthenticated, (bool authenticated) {
+      if (authenticated) {
+        loadRoutines();
+        loadWorkoutHistory();
+      } else {
+        routines.clear();
+        workoutLogs.clear();
+        archivedRoutines.clear();
+      }
+    });
+    // Si ya hay sesión activa al arrancar (token restaurado antes del binding)
+    if (auth.isAuthenticated.value) {
+      loadRoutines();
+      loadWorkoutHistory();
+    }
   }
 
   Future<void> loadWeeklyProgress() async {
@@ -220,9 +237,24 @@ class WorkoutController extends GetxController {
 
     try {
       await _workoutService.completeRoutine(id, sets);
-      _healthService.saveWorkout(start: start, end: DateTime.now());
+      try {
+        await _healthService.saveWorkout(start: start, end: DateTime.now());
+      } catch (e) {
+        debugPrint('Health save failed (non-fatal): $e');
+      }
     } catch (e) {
+      workoutLogs.removeAt(0); // roll back the optimistic insert
       debugPrint('completeRoutine save failed: $e');
+      Get.snackbar(
+        'Error al guardar',
+        'No se pudo guardar el entrenamiento. Revisa tu conexión.',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: AppColors.error,
+        colorText: Colors.white,
+        margin: const EdgeInsets.all(16),
+        borderRadius: 12,
+        duration: const Duration(seconds: 5),
+      );
       return;
     }
     // Suppress 401→logout for background reloads: a transient server error
@@ -232,6 +264,10 @@ class WorkoutController extends GetxController {
       await loadRoutines();
       await loadWeeklyProgress();
       await loadWorkoutHistory();
+      // Refresh server-side streak so StreakPills reflect the new value
+      if (Get.isRegistered<StreakController>()) {
+        Get.find<StreakController>().load();
+      }
     } catch (e) {
       debugPrint('completeRoutine reload failed: $e');
     }

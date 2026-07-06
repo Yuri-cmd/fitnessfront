@@ -58,6 +58,8 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
   late List<List<TextEditingController>> controllers;
 
+  DateTime? get sessionStart => _sessionStart;
+
   // ── Flat execution order ───────────────────────────────────────────────────
   List<_Step> _steps = [];
   int _stepIdx = 0;
@@ -81,6 +83,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
 
   Future<void> _asyncInit() async {
     await Future.wait([_restoreProgress(), _fetchLastWeights()]);
+    if (isClosed) return;
     _timer = Timer.periodic(const Duration(seconds: 1), (_) {
       elapsed.value = DateTime.now().difference(_sessionStart!).inSeconds;
     });
@@ -214,6 +217,30 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   }
 
   Future<void> clearProgress() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_sessionKey);
+  }
+
+  /// Returns the routineId of a saved (unfinished) session, or null if none.
+  static Future<int?> getSavedRoutineId() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final raw = prefs.getString(_sessionKey);
+      if (raw == null) return null;
+      final data = jsonDecode(raw) as Map<String, dynamic>;
+      final savedStart = DateTime.parse(data['sessionStart'] as String);
+      if (DateTime.now().difference(savedStart).inHours >= 6) {
+        await prefs.remove(_sessionKey);
+        return null;
+      }
+      return (data['routineId'] as num).toInt();
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Discards any saved session without launching a controller.
+  static Future<void> clearSavedSession() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_sessionKey);
   }
@@ -431,7 +458,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
   }
 
   // ── Session actions ────────────────────────────────────────────────────────
-  void completeSet() {
+  Future<void> completeSet() async {
     HapticFeedback.mediumImpact();
 
     final wasWarmup = isCurrentSetWarmup;
@@ -440,9 +467,9 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
     completedSetNum.value = currentSetIdx.value + 1;
 
     if (isLastOfAll) {
-      phase.value = TrainingPhase.finished;
       LiveActivityService.end();
-      clearProgress();
+      await clearProgress();
+      phase.value = TrainingPhase.finished;
     } else if (_steps[_stepIdx].skipRestAfter) {
       // Superset transition: advance immediately, no rest.
       _advanceSet();
@@ -584,6 +611,7 @@ class TrainingSessionController extends GetxController with WidgetsBindingObserv
       final prev = controllers[currentExIdx.value][currentSetIdx.value - 1];
       if (prev.text.isNotEmpty) {
         Future.delayed(const Duration(milliseconds: 50), () {
+          if (isClosed) return;
           ctrl.text = prev.text;
         });
       }

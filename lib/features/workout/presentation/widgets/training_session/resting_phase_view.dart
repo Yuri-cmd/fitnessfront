@@ -11,12 +11,12 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
     final colorScheme = Theme.of(context).colorScheme;
 
     return Obx(() {
-      final restPct =
-          (controller.currentRestDuration.value - controller.restRemaining.value) /
-              controller.currentRestDuration.value.clamp(
-                  1, controller.currentRestDuration.value);
+      final dur = controller.currentRestDuration.value;
+      final restPct = dur <= 0
+          ? 0.0
+          : ((dur - controller.restRemaining.value) / dur).clamp(0.0, 1.0);
       final warning = controller.isRestWarning.value;
-      final accentColor = warning ? Colors.orange.shade500 : AppColors.primary;
+      final accentColor = warning ? AppColors.warning : AppColors.primary;
 
       final nextEx = controller.showNextExerciseHint ? controller.nextExercise : null;
 
@@ -28,8 +28,8 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
           borderRadius: BorderRadius.circular(28),
           boxShadow: [
             BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 16,
+                color: Colors.black.withValues(alpha: 0.11),
+                blurRadius: 20,
                 offset: const Offset(0, 6))
           ],
         ),
@@ -112,7 +112,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                         fontSize: 52,
                         fontWeight: FontWeight.w900,
                         color: warning
-                            ? Colors.orange.shade600
+                            ? AppColors.warning
                             : colorScheme.onSurface,
                         fontFeatures: const [FontFeature.tabularFigures()],
                         height: 1,
@@ -128,7 +128,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Colors.orange.shade600,
+                          color: AppColors.warning,
                           letterSpacing: 2,
                         ),
                       ),
@@ -211,8 +211,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
               children: [
                 _AdjustBtn(
                     label: '−15s',
-                    onTap: () => controller.adjustRest(-15),
-                    context: context),
+                    onTap: () => controller.adjustRest(-15)),
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 14),
                   child: Text(
@@ -224,8 +223,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                 ),
                 _AdjustBtn(
                     label: '+15s',
-                    onTap: () => controller.adjustRest(15),
-                    context: context),
+                    onTap: () => controller.adjustRest(15)),
               ],
             ),
 
@@ -238,7 +236,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                 onPressed: controller.skipRest,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accentColor,
-                  foregroundColor: Colors.white,
+                  foregroundColor: warning ? Colors.white : AppColors.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
@@ -266,26 +264,23 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
 class _AdjustBtn extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
-  final BuildContext context;
-  const _AdjustBtn(
-      {required this.label, required this.onTap, required this.context});
+  const _AdjustBtn({required this.label, required this.onTap});
 
   @override
-  Widget build(BuildContext ctx) {
+  Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return OutlinedButton(
       onPressed: onTap,
       style: OutlinedButton.styleFrom(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-        side:
-            BorderSide(color: colorScheme.onSurface.withValues(alpha: 0.22)),
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        minimumSize: const Size(64, 48),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        side: BorderSide(color: colorScheme.onSurface.withValues(alpha: 0.22)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Text(label,
           style: TextStyle(
               fontWeight: FontWeight.bold,
-              fontSize: 13,
+              fontSize: 14,
               color: colorScheme.onSurface.withValues(alpha: 0.65))),
     );
   }

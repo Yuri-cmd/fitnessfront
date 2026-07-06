@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
@@ -13,25 +14,32 @@ import 'features/stats/bindings/stats_binding.dart';
 import 'features/water/bindings/water_binding.dart';
 import 'features/streak/bindings/streak_binding.dart';
 import 'core/theme/app_theme.dart';
+import 'core/presentation/screens/splash_screen.dart';
+import 'core/services/live_activity_service.dart';
 import 'features/auth/presentation/screens/login_screen.dart';
 import 'features/home/presentation/screens/main_screen.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
-  await Firebase.initializeApp();
+  if (Platform.isIOS) await Firebase.initializeApp();
 }
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  await FirebaseMessaging.instance.setForegroundNotificationPresentationOptions(
-    alert: true,
-    badge: true,
-    sound: true,
-  );
+  if (Platform.isIOS) {
+    await Firebase.initializeApp();
+    FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
+    await FirebaseMessaging.instance
+        .setForegroundNotificationPresentationOptions(
+          alert: true,
+          badge: true,
+          sound: true,
+        );
+    // Terminate any Live Activity left open from a previous session killed by the OS.
+    await LiveActivityService.end();
+  }
 
   await initializeDateFormatting('es_ES', null);
 
@@ -66,19 +74,21 @@ class FitTrackerApp extends StatelessWidget {
     final theme = Get.find<ThemeController>();
     final auth = Get.find<AuthController>();
 
-    return Obx(() => GetMaterialApp(
-          title: 'Power Stack',
-          debugShowCheckedModeBanner: false,
-          theme: AppTheme.lightTheme,
-          darkTheme: AppTheme.darkTheme,
-          themeMode: theme.modeObs.value,
-          home: !auth.isInitialized.value
-              ? const Scaffold(
-                  body: Center(child: CircularProgressIndicator()),
-                )
-              : auth.isAuthenticated.value
-                  ? const MainScreen()
-                  : const LoginScreen(),
-        ));
+    return Obx(
+      () => GetMaterialApp(
+        title: 'Power Stack',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        darkTheme: AppTheme.darkTheme,
+        themeMode: theme.modeObs.value,
+        defaultTransition: Transition.rightToLeftWithFade,
+        transitionDuration: const Duration(milliseconds: 320),
+        home: !auth.isInitialized.value
+            ? const SplashScreen()
+            : auth.isAuthenticated.value
+            ? const MainScreen()
+            : const LoginScreen(),
+      ),
+    );
   }
 }

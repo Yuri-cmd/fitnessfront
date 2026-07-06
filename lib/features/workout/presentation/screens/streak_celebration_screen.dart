@@ -90,8 +90,12 @@ class _StreakCelebrationScreenState extends State<StreakCelebrationScreen>
             height: 56);
     final text = _buildShareText();
     try {
-      final boundary = _captureKey.currentContext!.findRenderObject()
-          as RenderRepaintBoundary;
+      final ctx = _captureKey.currentContext;
+      final boundary = ctx?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        Share.share(text, sharePositionOrigin: origin);
+        return;
+      }
       final image = await boundary.toImage(pixelRatio: 3.0);
       final bytes =
           (await image.toByteData(format: ui.ImageByteFormat.png))!

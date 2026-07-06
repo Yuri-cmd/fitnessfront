@@ -16,6 +16,7 @@ class CreateRoutineScreen extends StatefulWidget {
 class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
   final _nameCtrl = TextEditingController();
   final _exercises = <Map<String, dynamic>>[];
+  bool _saving = false;
 
   WorkoutController get _c => Get.find<WorkoutController>();
   bool get _isEditing => widget.routine != null;
@@ -254,7 +255,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
                         final groupId =
                             _exercises[i]['superset_group'] as int?;
                         return _ExerciseTile(
-                          key: ValueKey(_exercises[i]['exercise_id']),
+                          key: ValueKey('${_exercises[i]['exercise_id']}_$i'),
                           exercise: _exercises[i],
                           onEdit: () => _editExercise(i),
                           onDelete: () =>
@@ -269,10 +270,15 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
             ),
             const SizedBox(height: 16),
             ElevatedButton(
-              onPressed: _save,
+              onPressed: _saving ? null : _save,
               style: ElevatedButton.styleFrom(
                   minimumSize: const Size(double.infinity, 55)),
-              child: Text(_isEditing ? 'ACTUALIZAR RUTINA' : 'GUARDAR RUTINA'),
+              child: _saving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text(_isEditing ? 'ACTUALIZAR RUTINA' : 'GUARDAR RUTINA'),
             ),
           ],
         ),
@@ -415,7 +421,14 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           child: const Text('ACTUALIZAR'),
         ),
       ],
-    ));
+    )).then((_) {
+      setsCtrl.dispose();
+      repsCtrl.dispose();
+      repsMaxCtrl.dispose();
+      warmupSetsCtrl.dispose();
+      warmupRepsCtrl.dispose();
+      restCtrl.dispose();
+    });
   }
 
   void _confirmDelete() {
@@ -446,14 +459,23 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           borderRadius: 12);
       return;
     }
+    setState(() => _saving = true);
     final success = _isEditing
         ? await _c.updateRoutine(
             widget.routine!.id, _nameCtrl.text, _exercises)
         : await _c.createRoutine(_nameCtrl.text, _exercises);
+    if (!mounted) return;
+    setState(() => _saving = false);
     if (success) {
       Get.back();
       Get.snackbar(
           '¡Listo!', _isEditing ? 'Rutina actualizada' : 'Rutina creada',
+          snackPosition: SnackPosition.BOTTOM,
+          margin: const EdgeInsets.all(16),
+          borderRadius: 12);
+    } else {
+      Get.snackbar(
+          'Error', 'No se pudo guardar la rutina. Intenta de nuevo.',
           snackPosition: SnackPosition.BOTTOM,
           margin: const EdgeInsets.all(16),
           borderRadius: 12);
@@ -519,12 +541,12 @@ class _ExerciseTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final warmupSets = (exercise['warmup_sets'] as int?) ?? 0;
-    final reps = exercise['reps'] as int;
-    final repsMax = exercise['reps_max'] as int?;
+    final warmupSets = (exercise['warmup_sets'] as num?)?.toInt() ?? 0;
+    final reps = (exercise['reps'] as num).toInt();
+    final repsMax = (exercise['reps_max'] as num?)?.toInt();
     final repsDisplay = repsMax != null ? '$reps-$repsMax' : '$reps';
     final warmupLabel = warmupSets > 0 ? '$warmupSets aprox. + ' : '';
-    final restSecs = (exercise['rest_seconds'] as int?) ?? 90;
+    final restSecs = (exercise['rest_seconds'] as num?)?.toInt() ?? 90;
     final restLabel = restSecs < 60
         ? '${restSecs}s'
         : restSecs % 60 == 0

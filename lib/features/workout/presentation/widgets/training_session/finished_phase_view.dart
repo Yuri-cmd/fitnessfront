@@ -219,11 +219,13 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () =>
-                    Get.back(result: controller.collectSetData()),
+                onPressed: () => Get.back(result: {
+                  'sets': controller.collectSetData(),
+                  'startTime': controller.sessionStart,
+                }),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
+                  foregroundColor: AppColors.onPrimary,
                   padding: const EdgeInsets.symmetric(vertical: 18),
                   shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(20)),
@@ -243,7 +245,27 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
             ),
             const SizedBox(height: 10),
             TextButton(
-              onPressed: () => Get.back(),
+              onPressed: () async {
+                final confirm = await Get.dialog<bool>(AlertDialog(
+                  title: const Text('¿Descartar entrenamiento?'),
+                  content: const Text(
+                    'Se perderá todo el progreso de esta sesión. Esta acción no se puede deshacer.',
+                  ),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Get.back(result: false),
+                      child: const Text('CANCELAR'),
+                    ),
+                    TextButton(
+                      onPressed: () => Get.back(result: true),
+                      style: TextButton.styleFrom(
+                          foregroundColor: AppColors.error),
+                      child: const Text('DESCARTAR'),
+                    ),
+                  ],
+                ));
+                if (confirm == true) Get.back();
+              },
               child: Text('Descartar y salir',
                   style: TextStyle(
                       color: colorScheme.onSurface.withValues(alpha: 0.35),

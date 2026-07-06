@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/features/streak/data/services/streak_service.dart';
 
@@ -30,7 +31,9 @@ class StreakController extends GetxController {
             (data['best_workout_streak'] as num).toInt();
         bestWaterStreak.value = (data['best_water_streak'] as num).toInt();
       }
-    } catch (_) {}
+    } catch (e, st) {
+      debugPrint('StreakController.load error: $e\n$st');
+    }
     isLoading.value = false;
   }
 }

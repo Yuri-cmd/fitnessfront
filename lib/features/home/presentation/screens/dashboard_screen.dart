@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
@@ -10,6 +11,9 @@ import 'package:fit_tracker_app/features/streak/presentation/controllers/streak_
 import 'package:fit_tracker_app/features/streak/presentation/widgets/streak_pills.dart';
 import 'package:fit_tracker_app/core/theme/theme_controller.dart';
 import 'package:fit_tracker_app/core/services/version_service.dart';
+import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/training_session_screen.dart';
+import 'package:fit_tracker_app/features/workout/presentation/screens/streak_celebration_screen.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -19,6 +23,8 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
+  int? _activeSessionRoutineId;
+
   @override
   void initState() {
     super.initState();
@@ -26,8 +32,47 @@ class _DashboardScreenState extends State<DashboardScreen> {
       if (!mounted) return;
       Get.find<WorkoutController>().loadWeeklyProgress();
       VersionService.checkAndPrompt(context);
-      _offerBiometricIfNeeded();
+      // Delay biometric offer so it never stacks on top of a version dialog
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (Get.isDialogOpen != true) _offerBiometricIfNeeded();
+      });
     });
+    _checkForSavedSession();
+  }
+
+  Future<void> _checkForSavedSession() async {
+    final id = await TrainingSessionController.getSavedRoutineId();
+    if (id != null && mounted) setState(() => _activeSessionRoutineId = id);
+  }
+
+  Future<void> _resumeSession() async {
+    final id = _activeSessionRoutineId;
+    if (id == null) return;
+    final wc = Get.find<WorkoutController>();
+    final routine = wc.routines.firstWhereOrNull((r) => r.id == id);
+    if (routine == null) {
+      await TrainingSessionController.clearSavedSession();
+      if (mounted) setState(() => _activeSessionRoutineId = null);
+      return;
+    }
+    if (mounted) setState(() => _activeSessionRoutineId = null);
+
+    final result = await Get.to<dynamic>(
+      () => TrainingSessionScreen(routine: routine),
+    );
+
+    if (result is Map && mounted) {
+      final sets = List<Map<String, dynamic>>.from(result['sets'] as List);
+      final startTime = result['startTime'] as DateTime?;
+      final streakData = wc.computeStreakData(routineId: routine.id);
+      final userName = Get.find<AuthController>().userName.value;
+      Get.to(() => StreakCelebrationScreen(
+            streak: streakData.streak,
+            trainedDaysThisWeek: streakData.trainedDays,
+            userName: userName,
+          ));
+      unawaited(wc.completeRoutine(routine.id, sets, startTime));
+    }
   }
 
   void _offerBiometricIfNeeded() {
@@ -122,7 +167,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         ],
       ),
-      body: Obx(() {
+      body: Column(
+        children: [
+          if (_activeSessionRoutineId != null)
+            _ActiveSessionBanner(
+              onResume: _resumeSession,
+              onDiscard: () async {
+                await TrainingSessionController.clearSavedSession();
+                if (mounted) setState(() => _activeSessionRoutineId = null);
+              },
+            ),
+          Expanded(
+            child: Obx(() {
         final fitness = Get.find<FitnessController>();
         if (fitness.isLoading.value) return const _DashboardSkeleton();
         return RefreshIndicator(
@@ -158,6 +214,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
           ),
         );
       }),
+          ),   // Expanded
+        ],
+      ),       // Column
     );
   }
 
@@ -207,6 +266,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     color: Colors.white,
                     letterSpacing: 0.5,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
                 Container(
@@ -614,7 +675,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     ? () async {
                         confirmController.dispose();
                         Get.back();
-                        await Get.find<AuthController>().deleteAccount();
+                        final ok = await Get.find<AuthController>().deleteAccount();
+                        if (!ok) {
+                          Get.snackbar(
+                            'Error',
+                            'No se pudo eliminar la cuenta. Intenta de nuevo.',
+                            snackPosition: SnackPosition.BOTTOM,
+                            margin: const EdgeInsets.all(16),
+                            borderRadius: 12,
+                          );
+                        }
                       }
                     : null,
                 child: const Text('ELIMINAR',
@@ -631,6 +701,66 @@ class _DashboardScreenState extends State<DashboardScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => const _ProfileSheet(),
+    );
+  }
+}
+
+// ─── Skeleton ─────────────────────────────────────────────────────────────────
+
+// ─── Active session banner ────────────────────────────────────────────────────
+
+class _ActiveSessionBanner extends StatelessWidget {
+  final VoidCallback onResume;
+  final VoidCallback onDiscard;
+  const _ActiveSessionBanner(
+      {required this.onResume, required this.onDiscard});
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: AppColors.primary.withValues(alpha: 0.12),
+      child: InkWell(
+        onTap: onResume,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: AppColors.primary,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.fitness_center_rounded,
+                    size: 18, color: Colors.black87),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Sesión activa',
+                        style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            fontSize: 13,
+                            color: AppColors.primary)),
+                    Text('Toca para continuar tu entrenamiento',
+                        style: TextStyle(
+                            fontSize: 11, color: AppColors.primary)),
+                  ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.close, size: 18),
+                color: AppColors.primary.withValues(alpha: 0.55),
+                tooltip: 'Descartar sesión',
+                onPressed: onDiscard,
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }
@@ -841,8 +971,9 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
+    final messenger = ScaffoldMessenger.of(context);
     Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+    messenger.showSnackBar(SnackBar(
       content: Text(ok ? 'Perfil actualizado' : 'Error al guardar'),
       backgroundColor: ok ? AppColors.primary : Colors.red.shade400,
       behavior: SnackBarBehavior.floating,

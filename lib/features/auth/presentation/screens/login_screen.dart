@@ -17,6 +17,7 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen>
     with SingleTickerProviderStateMixin {
+  final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   bool _obscurePassword = true;
@@ -100,9 +101,11 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _login() async {
+    if (!_formKey.currentState!.validate()) return;
+    FocusScope.of(context).unfocus();
     final auth = Get.find<AuthController>();
     final success = await auth.login(
-      _emailController.text,
+      _emailController.text.trim(),
       _passwordController.text,
     );
     if (!success && mounted) {
@@ -232,13 +235,15 @@ class _LoginScreenState extends State<LoginScreen>
                         position: _slideForm,
                         child: FadeTransition(
                           opacity: _fadeForm,
-                          child: Column(
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
                             crossAxisAlignment:
                                 CrossAxisAlignment.stretch,
                             children: [
                               _label('CORREO ELECTRÓNICO'),
                               const SizedBox(height: 8),
-                              TextField(
+                              TextFormField(
                                 controller: _emailController,
                                 keyboardType:
                                     TextInputType.emailAddress,
@@ -250,18 +255,27 @@ class _LoginScreenState extends State<LoginScreen>
                                   hint: 'ejemplo@correo.com',
                                   icon: Icons.alternate_email_rounded,
                                 ),
+                                validator: (v) {
+                                  if (v == null || v.trim().isEmpty) {
+                                    return 'Ingresa tu correo';
+                                  }
+                                  if (!v.contains('@') || !v.contains('.')) {
+                                    return 'Correo inválido';
+                                  }
+                                  return null;
+                                },
                               ),
                               const SizedBox(height: 20),
                               _label('CONTRASEÑA'),
                               const SizedBox(height: 8),
-                              TextField(
+                              TextFormField(
                                 controller: _passwordController,
                                 obscureText: _obscurePassword,
                                 textInputAction: TextInputAction.done,
                                 autofillHints: const [
                                   AutofillHints.password
                                 ],
-                                onSubmitted: (_) => _login(),
+                                onFieldSubmitted: (_) => _login(),
                                 decoration: _inputDeco(
                                   hint: '••••••••',
                                   icon: Icons.lock_outline_rounded,
@@ -278,8 +292,36 @@ class _LoginScreenState extends State<LoginScreen>
                                             !_obscurePassword),
                                   ),
                                 ),
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Ingresa tu contraseña';
+                                  }
+                                  if (v.length < 6) {
+                                    return 'Mínimo 6 caracteres';
+                                  }
+                                  return null;
+                                },
                               ),
-                              const SizedBox(height: 36),
+                              const SizedBox(height: 8),
+                              Align(
+                                alignment: Alignment.centerRight,
+                                child: TextButton(
+                                  onPressed: () {},
+                                  style: TextButton.styleFrom(
+                                    foregroundColor: AppColors.secondary,
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 4, vertical: 4),
+                                    minimumSize: const Size(0, 36),
+                                  ),
+                                  child: const Text(
+                                    '¿Olvidaste tu contraseña?',
+                                    style: TextStyle(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w500),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 16),
                               Obx(() => NeonButton(
                                     label: 'INGRESAR',
                                     onTap: _login,
@@ -400,6 +442,7 @@ class _LoginScreenState extends State<LoginScreen>
                               ),
                               const SizedBox(height: 16),
                             ],
+                          ),
                           ),
                         ),
                       ),
