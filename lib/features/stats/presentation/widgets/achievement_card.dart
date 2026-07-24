@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fit_tracker_app/core/theme/app_colors.dart';
 import 'package:fit_tracker_app/features/stats/data/models/stats_models.dart';
 import 'package:fit_tracker_app/features/stats/presentation/controllers/stats_controller.dart';
 
@@ -15,10 +16,10 @@ class AchievementCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.gold.withValues(alpha: 0.3)),
         boxShadow: [
           BoxShadow(
-            color: Colors.amber.withValues(alpha: 0.06),
+            color: AppColors.gold.withValues(alpha: 0.06),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -30,10 +31,10 @@ class AchievementCard extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: Colors.amber.withValues(alpha: 0.1),
+              color: AppColors.gold.withValues(alpha: 0.1),
               shape: BoxShape.circle,
               border: Border.all(
-                  color: Colors.amber.withValues(alpha: 0.35), width: 1.5),
+                  color: AppColors.gold.withValues(alpha: 0.35), width: 1.5),
             ),
             child: Center(
               child: Text(
@@ -69,13 +70,13 @@ class AchievementCard extends StatelessWidget {
                   Row(
                     children: [
                       const Icon(Icons.calendar_today_rounded,
-                          size: 11, color: Colors.amber),
+                          size: 11, color: AppColors.gold),
                       const SizedBox(width: 4),
                       Text(
                         StatsController.formatDate(earnedAt.toIso8601String()),
                         style: const TextStyle(
                             fontSize: 11,
-                            color: Colors.amber,
+                            color: AppColors.gold,
                             fontWeight: FontWeight.w600),
                       ),
                     ],
@@ -85,7 +86,7 @@ class AchievementCard extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 8),
-          const Icon(Icons.verified_rounded, color: Colors.amber, size: 22),
+          const Icon(Icons.verified_rounded, color: AppColors.gold, size: 22),
         ],
       ),
     );

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
 class FinishedPhaseView extends GetView<TrainingSessionController> {
@@ -31,7 +33,7 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
                     AppColors.primary.withValues(alpha: 0.04),
                   ],
                 ),
-                borderRadius: BorderRadius.circular(28),
+                borderRadius: BorderRadius.circular(AppRadii.xl),
                 border: Border.all(
                     color: AppColors.primary.withValues(alpha: 0.18)),
               ),
@@ -73,16 +75,8 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
             const SizedBox(height: 16),
 
             // ── Stats ─────────────────────────────────────────────────────────
-            Container(
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10)
-                ],
-              ),
+            AppCard(
+              padding: EdgeInsets.zero,
               child: IntrinsicHeight(
                 child: Row(
                   children: [
@@ -124,18 +118,8 @@ class FinishedPhaseView extends GetView<TrainingSessionController> {
             const SizedBox(height: 16),
 
             // ── Lista ejercicios ──────────────────────────────────────────────
-            Container(
-              width: double.infinity,
+            AppCard(
               padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: colorScheme.surface,
-                borderRadius: BorderRadius.circular(20),
-                boxShadow: [
-                  BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.05),
-                      blurRadius: 10)
-                ],
-              ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [

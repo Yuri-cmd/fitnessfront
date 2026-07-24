@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/controllers/fitness_controller.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/widgets/bmi_summary_card.dart';
 
@@ -126,18 +128,13 @@ class _WeightGraph extends StatelessWidget {
       if (c.weightLogs.isEmpty) {
         return const Center(child: Text('No hay datos suficientes'));
       }
-      return Container(
-        height: 250,
+      return AppCard(
+        radius: AppRadii.lg,
         padding:
             const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: const [
-            BoxShadow(color: Colors.black12, blurRadius: 10)
-          ],
-        ),
-        child: LineChart(LineChartData(
+        child: SizedBox(
+          height: 250 - 48,
+          child: LineChart(LineChartData(
           gridData: const FlGridData(
               show: true, drawVerticalLine: false),
           titlesData: FlTitlesData(
@@ -168,6 +165,7 @@ class _WeightGraph extends StatelessWidget {
             ),
           ],
         )),
+        ),
       );
     });
   }

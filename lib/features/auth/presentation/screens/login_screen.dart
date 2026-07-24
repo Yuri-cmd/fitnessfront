@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
 import 'package:fit_tracker_app/core/widgets/neon_button.dart';
+import 'package:fit_tracker_app/core/widgets/app_icon_badge.dart';
 import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'privacy_screen.dart';
 import 'register_screen.dart';
@@ -166,41 +167,20 @@ class _LoginScreenState extends State<LoginScreen>
                           opacity: _fadeHero,
                           child: Column(
                             children: [
-                              Container(
-                                width: 100,
-                                height: 100,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: AppColors.primary
-                                      .withValues(alpha: 0.1),
-                                  border: Border.all(
-                                    color: AppColors.primary
-                                        .withValues(alpha: 0.28),
-                                    width: 1.5,
-                                  ),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.22),
-                                      blurRadius: 36,
-                                      spreadRadius: 6,
-                                    ),
-                                  ],
-                                ),
-                                child: const Icon(
-                                  Icons.fitness_center_rounded,
-                                  size: 50,
-                                  color: AppColors.primary,
-                                ),
+                              const AppIconBadge(
+                                icon: Icons.fitness_center_rounded,
+                                size: 96,
                               ),
                               const SizedBox(height: 24),
-                              const Text(
+                              Text(
                                 'POWER STACK',
-                                style: TextStyle(
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.w900,
-                                  letterSpacing: 4,
-                                ),
+                                style: Theme.of(context)
+                                    .textTheme
+                                    .headlineLarge
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 4,
+                                    ),
                               ),
                               const SizedBox(height: 8),
                               Row(

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
 import 'package:fit_tracker_app/core/widgets/neon_button.dart';
+import 'package:fit_tracker_app/core/widgets/app_icon_badge.dart';
 import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -106,26 +107,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               const SizedBox(height: 12),
-              Center(
-                child: Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.primary.withValues(alpha: 0.1),
-                    border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.28),
-                        width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.18),
-                        blurRadius: 24,
-                        spreadRadius: 4,
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.person_add_rounded,
-                      size: 34, color: AppColors.primary),
+              const Center(
+                child: AppIconBadge(
+                  icon: Icons.person_add_rounded,
+                  size: 96,
                 ),
               ),
               const SizedBox(height: 28),

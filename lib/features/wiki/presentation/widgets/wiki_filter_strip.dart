@@ -58,7 +58,9 @@ class _Chip extends StatelessWidget {
           color: selected ? AppColors.primary : AppColors.surface,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-              color: selected ? AppColors.primary : Colors.black12),
+              color: selected
+                  ? AppColors.primary
+                  : Theme.of(context).colorScheme.outlineVariant),
         ),
         child: Text(
           label,

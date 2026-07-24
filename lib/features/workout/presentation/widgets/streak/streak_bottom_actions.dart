@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 
 class StreakBottomActions extends StatelessWidget {
   final GlobalKey shareKey;
@@ -29,7 +30,7 @@ class StreakBottomActions extends StatelessWidget {
               height: 56,
               decoration: BoxDecoration(
                 color: onSurface.withValues(alpha: 0.07),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(AppRadii.md),
                 border:
                     Border.all(color: onSurface.withValues(alpha: 0.1)),
               ),
@@ -47,7 +48,7 @@ class StreakBottomActions extends StatelessWidget {
                   backgroundColor: AppColors.primary,
                   foregroundColor: Colors.white,
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16)),
+                      borderRadius: BorderRadius.circular(AppRadii.md)),
                   elevation: 0,
                 ),
                 child: Text(

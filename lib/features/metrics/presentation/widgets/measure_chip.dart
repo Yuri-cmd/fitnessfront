@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 
 class MeasureChip extends StatelessWidget {
   final String label;
@@ -26,7 +27,7 @@ class MeasureChip extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

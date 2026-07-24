@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
 import 'package:fit_tracker_app/features/workout/presentation/screens/goals_screen.dart';
 import 'package:fit_tracker_app/features/wiki/presentation/screens/wiki_screen.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/screens/body_measurements_screen.dart';
@@ -88,56 +89,41 @@ class _NavCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
+    return AppCard(
+      radius: AppRadii.lg,
+      padding: const EdgeInsets.all(20),
       onTap: () => Get.to(() => screen),
-      borderRadius: BorderRadius.circular(20),
-      child: Container(
-        padding: const EdgeInsets.all(20),
-        decoration: BoxDecoration(
-          color: Theme.of(context).colorScheme.surface,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 10,
-              offset: const Offset(0, 4),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(AppRadii.md),
             ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: color.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(icon, color: color, size: 28),
+            child: Icon(icon, color: color, size: 28),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title,
+                    style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                        letterSpacing: 0.5)),
+                const SizedBox(height: 4),
+                Text(subtitle,
+                    style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            Theme.of(context).colorScheme.onSurfaceVariant)),
+              ],
             ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: const TextStyle(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
-                          letterSpacing: 0.5)),
-                  const SizedBox(height: 4),
-                  Text(subtitle,
-                      style: TextStyle(
-                          fontSize: 12,
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurfaceVariant)),
-                ],
-              ),
-            ),
-            const Icon(Icons.chevron_right_rounded,
-                color: AppColors.primary, size: 24),
-          ],
-        ),
+          ),
+          Icon(Icons.chevron_right_rounded, color: color, size: 24),
+        ],
       ),
     );
   }

@@ -14,4 +14,11 @@ class AppColors {
   static const Color alert          = Color(0xFFF2994A); // alias de warning (retrocompat.)
   static const Color error          = Color(0xFFD32F2F); // Red
   static const Color white          = Color(0xFFFFFFFF);
+
+  // Roles semánticos añadidos para el sistema de diseño (evitar Colors.* crudo)
+  static const Color textMutedLight = Color(0xFF757575); // reemplaza Colors.grey en tema claro
+  static const Color textMutedDark  = Color(0xFFA0A0A0); // reemplaza Colors.grey en tema oscuro
+  static const Color gold           = Color(0xFFC9A227); // medallas / logros (reemplaza Colors.amber)
+  static const Color silver         = Color(0xFFA8ADB4); // 2º lugar en rankings
+  static const Color bronze         = Color(0xFFB07A4E); // 3er lugar en rankings
 }

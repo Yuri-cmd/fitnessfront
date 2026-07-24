@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/theme/app_shadows.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
 class RestingPhaseView extends GetView<TrainingSessionController> {
@@ -9,6 +11,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Obx(() {
       final dur = controller.currentRestDuration.value;
@@ -25,13 +28,8 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
         padding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
         decoration: BoxDecoration(
           color: colorScheme.surface,
-          borderRadius: BorderRadius.circular(28),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withValues(alpha: 0.11),
-                blurRadius: 20,
-                offset: const Offset(0, 6))
-          ],
+          borderRadius: BorderRadius.circular(AppRadii.xl),
+          boxShadow: AppShadows.card(dark: isDark),
         ),
         child: Column(
           children: [
@@ -148,7 +146,7 @@ class RestingPhaseView extends GetView<TrainingSessionController> {
                     const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 decoration: BoxDecoration(
                   color: colorScheme.onSurface.withValues(alpha: 0.04),
-                  borderRadius: BorderRadius.circular(14),
+                  borderRadius: BorderRadius.circular(AppRadii.md),
                   border: Border.all(
                       color: colorScheme.onSurface.withValues(alpha: 0.07)),
                 ),
@@ -275,7 +273,6 @@ class _AdjustBtn extends StatelessWidget {
         minimumSize: const Size(64, 48),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         side: BorderSide(color: colorScheme.onSurface.withValues(alpha: 0.22)),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
       child: Text(label,
           style: TextStyle(

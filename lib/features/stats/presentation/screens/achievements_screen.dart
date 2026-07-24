@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/widgets/empty_state_view.dart';
 import 'package:fit_tracker_app/features/stats/data/models/stats_models.dart';
 import 'package:fit_tracker_app/features/stats/presentation/controllers/stats_controller.dart';
 import 'package:fit_tracker_app/features/stats/presentation/widgets/achievement_card.dart';
@@ -121,62 +122,34 @@ class _AnimatedCard extends StatelessWidget {
 class _AchievementsEmpty extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(40),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              width: 120,
-              height: 120,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.amber.withValues(alpha: 0.08),
-                border: Border.all(
-                    color: Colors.amber.withValues(alpha: 0.25), width: 2),
-              ),
-              child: const Center(
-                  child: Text('🏆', style: TextStyle(fontSize: 56))),
-            ),
-            const SizedBox(height: 28),
-            const Text('Aún no tienes logros',
-                style:
-                    TextStyle(fontSize: 20, fontWeight: FontWeight.w900)),
-            const SizedBox(height: 12),
-            Text(
-              'Completa rutinas, cumple tus metas\nde hidratación y supera tus récords\npara desbloquear medallas.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                  fontSize: 13,
-                  height: 1.6,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant),
-            ),
-            const SizedBox(height: 32),
-            Container(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              decoration: BoxDecoration(
-                color: AppColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.3)),
-              ),
-              child: const Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.fitness_center_rounded,
-                      size: 16, color: AppColors.primary),
-                  SizedBox(width: 8),
-                  Text('Ve a entrenar y empieza',
-                      style: TextStyle(
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13)),
-                ],
-              ),
-            ),
-          ],
+    return Padding(
+      padding: const EdgeInsets.all(40),
+      child: EmptyStateView(
+        icon: Icons.emoji_events_outlined,
+        title: 'Aún no tienes logros',
+        subtitle:
+            'Completa rutinas, cumple tus metas\nde hidratación y supera tus récords\npara desbloquear medallas.',
+        action: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+          decoration: BoxDecoration(
+            color: AppColors.primary.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(20),
+            border:
+                Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
+          ),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.fitness_center_rounded,
+                  size: 16, color: AppColors.primary),
+              SizedBox(width: 8),
+              Text('Ve a entrenar y empieza',
+                  style: TextStyle(
+                      color: AppColors.primary,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13)),
+            ],
+          ),
         ),
       ),
     );

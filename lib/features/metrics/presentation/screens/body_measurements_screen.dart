@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/features/metrics/data/models/measurement_model.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/controllers/measurement_controller.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/widgets/measure_chip.dart';
@@ -208,8 +209,8 @@ class _MeasurementCard extends StatelessWidget {
 
     return Card(
       margin: const EdgeInsets.only(bottom: 16),
-      shape:
-          RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

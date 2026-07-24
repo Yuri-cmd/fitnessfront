@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 
 class AppBadge extends StatelessWidget {
   const AppBadge({super.key});
@@ -15,7 +16,7 @@ class AppBadge extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.15),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(AppRadii.lg),
               border:
                   Border.all(color: AppColors.primary.withValues(alpha: 0.3)),
             ),

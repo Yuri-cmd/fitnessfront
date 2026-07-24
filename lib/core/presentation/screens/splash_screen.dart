@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/widgets/app_icon_badge.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -46,38 +47,27 @@ class _SplashScreenState extends State<SplashScreen>
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 96,
-                  height: 96,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.14),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.fitness_center_rounded,
-                    size: 50,
-                    color: Colors.black87,
-                  ),
+                const AppIconBadge(
+                  icon: Icons.fitness_center_rounded,
+                  size: 96,
+                  color: AppColors.onPrimary,
                 ),
                 const SizedBox(height: 26),
-                const Text(
+                Text(
                   'POWER STACK',
-                  style: TextStyle(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: 5,
-                    color: Colors.black87,
-                  ),
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: 5,
+                        color: Colors.black87,
+                      ),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'DOMINA TU ENTRENAMIENTO',
-                  style: TextStyle(
-                    fontSize: 10,
-                    letterSpacing: 2.5,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.black.withValues(alpha: 0.50),
-                  ),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                        letterSpacing: 2.5,
+                        color: Colors.black.withValues(alpha: 0.50),
+                      ),
                 ),
                 const SizedBox(height: 64),
                 SizedBox(

@@ -17,6 +17,10 @@ class GlassContainer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    // El efecto vidrio necesita un tinte claro sobre fondos oscuros y uno
+    // oscuro sobre fondos claros para seguir siendo visible en ambos temas.
+    final tint = isDark ? Colors.white : Colors.black;
     return ClipRRect(
       borderRadius: BorderRadius.circular(borderRadius),
       child: BackdropFilter(
@@ -24,10 +28,10 @@ class GlassContainer extends StatelessWidget {
         child: Container(
           padding: EdgeInsets.all(padding),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.05),
+            color: tint.withValues(alpha: isDark ? 0.05 : 0.035),
             borderRadius: BorderRadius.circular(borderRadius),
             border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
+              color: tint.withValues(alpha: isDark ? 0.1 : 0.08),
             ),
           ),
           child: child,

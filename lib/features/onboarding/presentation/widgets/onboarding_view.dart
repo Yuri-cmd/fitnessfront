@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_icon_badge.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
 
 class OnboardingView extends StatefulWidget {
   final VoidCallback onCreate;
@@ -46,34 +49,17 @@ class _OnboardingViewState extends State<OnboardingView>
           padding: const EdgeInsets.fromLTRB(24, 40, 24, 48),
           child: Column(
             children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: AppColors.primary.withValues(alpha: 0.12),
-                  border: Border.all(
-                    color: AppColors.primary.withValues(alpha: 0.25),
-                    width: 1.5,
-                  ),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.primary.withValues(alpha: 0.18),
-                      blurRadius: 32,
-                      spreadRadius: 4,
-                    ),
-                  ],
-                ),
-                child: const Icon(
-                  Icons.fitness_center_rounded,
-                  size: 44,
-                  color: AppColors.primary,
-                ),
+              const AppIconBadge(
+                icon: Icons.fitness_center_rounded,
+                size: 96,
               ),
               const SizedBox(height: 24),
-              const Text(
+              Text(
                 '¡Bienvenido a Power Stack!',
-                style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
+                style: Theme.of(context)
+                    .textTheme
+                    .headlineSmall
+                    ?.copyWith(fontWeight: FontWeight.w900),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 10),
@@ -116,7 +102,7 @@ class _OnboardingViewState extends State<OnboardingView>
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(20),
+                      borderRadius: BorderRadius.circular(AppRadii.sm),
                     ),
                   ),
                 ),
@@ -139,16 +125,8 @@ class _FeatureTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04), blurRadius: 8),
-        ],
-      ),
+    return AppCard(
+      radius: AppRadii.md,
       child: Row(
         children: [
           Container(
@@ -156,7 +134,7 @@ class _FeatureTile extends StatelessWidget {
             height: 44,
             decoration: BoxDecoration(
               color: AppColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Icon(icon, color: AppColors.primary, size: 22),
           ),
@@ -165,9 +143,7 @@ class _FeatureTile extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title,
-                    style: const TextStyle(
-                        fontWeight: FontWeight.w700, fontSize: 15)),
+                Text(title, style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 2),
                 Text(subtitle,
                     style: TextStyle(

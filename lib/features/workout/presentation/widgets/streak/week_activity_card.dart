@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'capture_colors.dart';
 
 class WeekActivityCard extends StatelessWidget {
@@ -23,7 +24,7 @@ class WeekActivityCard extends StatelessWidget {
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: colors.cardBg,
-          borderRadius: BorderRadius.circular(24),
+          borderRadius: BorderRadius.circular(AppRadii.xl),
           border: Border.all(color: colors.cardBorder),
         ),
         child: Column(

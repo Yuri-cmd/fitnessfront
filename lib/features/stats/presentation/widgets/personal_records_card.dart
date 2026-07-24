@@ -44,9 +44,9 @@ class _PrRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final medalColors = [
-      Colors.amber,
-      Colors.grey.shade400,
-      Colors.brown.shade300
+      AppColors.gold,
+      AppColors.silver,
+      AppColors.bronze,
     ];
     final color = rank <= 3
         ? medalColors[rank - 1]

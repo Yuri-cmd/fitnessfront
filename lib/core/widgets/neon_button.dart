@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 
 class NeonButton extends StatelessWidget {
   final String label;
@@ -23,7 +24,7 @@ class NeonButton extends StatelessWidget {
       width: double.infinity,
       height: 55,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
         gradient: LinearGradient(colors: effectiveColors),
         boxShadow: [
           BoxShadow(
@@ -37,7 +38,7 @@ class NeonButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           onTap: isLoading ? null : onTap,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
           child: Center(
             child: isLoading
                 ? const SizedBox(
@@ -45,7 +46,7 @@ class NeonButton extends StatelessWidget {
                     width: 20,
                     child: CircularProgressIndicator(
                       strokeWidth: 2,
-                      color: AppColors.background,
+                      color: AppColors.onPrimary,
                     ),
                   )
                 : Text(
@@ -54,7 +55,7 @@ class NeonButton extends StatelessWidget {
                       fontSize: 14,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 1.2,
-                      color: AppColors.background, // Texto oscuro sobre fondo lima/azul
+                      color: AppColors.onPrimary, // Contraste fijo — el botón siempre es un gradiente de marca, no de superficie del tema
                     ),
                   ),
           ),

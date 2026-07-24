@@ -13,6 +13,8 @@ import 'package:fit_tracker_app/features/workout/presentation/screens/training_s
 import 'package:fit_tracker_app/features/workout/presentation/screens/streak_celebration_screen.dart';
 import 'package:fit_tracker_app/features/workout/presentation/screens/one_rm_screen.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
 import 'package:fit_tracker_app/features/onboarding/presentation/widgets/onboarding_view.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
@@ -368,49 +370,49 @@ class _ActiveSessionBanner extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Material(
-      color: AppColors.primary.withValues(alpha: 0.12),
-      child: InkWell(
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: AppCard(
+        radius: AppRadii.lg,
+        color: AppColors.primary.withValues(alpha: 0.12),
+        padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
         onTap: onResume,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
-          child: Row(
-            children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.fitness_center_rounded,
-                    size: 18, color: Colors.black87),
+        child: Row(
+          children: [
+            Container(
+              width: 36,
+              height: 36,
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                borderRadius: BorderRadius.circular(AppRadii.md),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Sesión activa',
-                        style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            fontSize: 13,
-                            color: AppColors.primary)),
-                    Text('Toca para continuar tu entrenamiento',
-                        style: TextStyle(
-                            fontSize: 11,
-                            color: AppColors.primary)),
-                  ],
-                ),
+              child: const Icon(Icons.fitness_center_rounded,
+                  size: 18, color: Colors.black87),
+            ),
+            const SizedBox(width: 12),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Sesión activa',
+                      style: TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: AppColors.primary)),
+                  Text('Toca para continuar tu entrenamiento',
+                      style: TextStyle(
+                          fontSize: 11,
+                          color: AppColors.primary)),
+                ],
               ),
-              IconButton(
-                icon: const Icon(Icons.close, size: 18),
-                color: AppColors.primary.withValues(alpha: 0.55),
-                tooltip: 'Descartar sesión',
-                onPressed: onDiscard,
-              ),
-            ],
-          ),
+            ),
+            IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              color: AppColors.primary.withValues(alpha: 0.55),
+              tooltip: 'Descartar sesión',
+              onPressed: onDiscard,
+            ),
+          ],
         ),
       ),
     );

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/features/stats/data/models/stats_models.dart';
 import 'package:fit_tracker_app/features/stats/presentation/controllers/stats_controller.dart';
 import 'package:fit_tracker_app/features/stats/presentation/widgets/weight_section_card.dart';
@@ -79,7 +80,7 @@ class _TabToggle extends StatelessWidget {
       return Container(
         decoration: BoxDecoration(
           color: Colors.grey.withValues(alpha: 0.1),
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
         ),
         child: Row(
           children: [
@@ -122,7 +123,7 @@ class _TabButton extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
             color: selected ? AppColors.primary : Colors.transparent,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(AppRadii.sm),
           ),
           alignment: Alignment.center,
           child: Text(

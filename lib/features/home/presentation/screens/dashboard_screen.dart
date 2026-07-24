@@ -2,6 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
+import 'package:fit_tracker_app/core/widgets/app_pill.dart';
+import 'package:fit_tracker_app/core/widgets/section_label.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/controllers/fitness_controller.dart';
 import 'package:fit_tracker_app/features/auth/presentation/controllers/auth_controller.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/workout_controller.dart';
@@ -79,7 +83,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final auth = Get.find<AuthController>();
     if (!auth.isBiometricAvailable.value || auth.isBiometricEnabled.value) return;
     Get.dialog(AlertDialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.md)),
       title: const Text('Acceso biométrico'),
       content: const Text(
         '¿Quieres usar huella o Face ID para ingresar más rápido la próxima vez?',
@@ -232,6 +236,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         .join(' ');
     return Container(
       width: double.infinity,
+      margin: const EdgeInsets.fromLTRB(20, 20, 20, 0),
       padding: const EdgeInsets.fromLTRB(24, 28, 24, 28),
       decoration: BoxDecoration(
         gradient: LinearGradient(
@@ -241,6 +246,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
+        borderRadius: BorderRadius.circular(AppRadii.xl),
       ),
       child: Row(
         children: [
@@ -250,8 +256,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   _greeting,
-                  style: TextStyle(
-                    fontSize: 13,
+                  style: Theme.of(context).textTheme.labelMedium?.copyWith(
                     color: AppColors.primary.withValues(alpha: 0.85),
                     fontWeight: FontWeight.w600,
                     letterSpacing: 0.5,
@@ -260,8 +265,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 const SizedBox(height: 4),
                 Text(
                   name,
-                  style: const TextStyle(
-                    fontSize: 26,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w900,
                     color: Colors.white,
                     letterSpacing: 0.5,
@@ -270,25 +274,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.2),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                        color: AppColors.primary.withValues(alpha: 0.4)),
-                  ),
-                  child: Text(
-                    fitness.bmi.value != null
-                        ? 'IMC ${fitness.bmi.value!.toStringAsFixed(1)} · ${fitness.bmiCategory}'
-                        : 'Completa tu perfil',
-                    style: const TextStyle(
-                      fontSize: 11,
-                      color: AppColors.primary,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
+                AppPill(
+                  label: fitness.bmi.value != null
+                      ? 'IMC ${fitness.bmi.value!.toStringAsFixed(1)} · ${fitness.bmiCategory}'
+                      : 'Completa tu perfil',
+                  color: AppColors.primary,
+                  fontSize: 11,
                 ),
                 const SizedBox(height: 10),
                 const StreakPills(),
@@ -354,20 +345,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
     required String label,
     required String sub,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Theme.of(context).dividerColor),
-      ),
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
+    return AppCard(
+      radius: AppRadii.lg,
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.all(9),
             decoration: BoxDecoration(
               color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Icon(icon, color: iconColor, size: 20),
           ),
@@ -378,19 +365,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 Text(
                   value,
-                  style: const TextStyle(
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w900, fontSize: 18),
                 ),
                 Text(
                   label,
-                  style: const TextStyle(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      fontWeight: FontWeight.bold, color: muted),
                 ),
                 Text(
                   sub,
-                  style: const TextStyle(fontSize: 10, color: Colors.grey),
+                  style: Theme.of(context).textTheme.labelSmall?.copyWith(color: muted),
                 ),
               ],
             ),
@@ -412,19 +397,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
       children: [
         Row(
           children: [
-            const Text(
-              'SEMANA ACTUAL',
-              style: TextStyle(
-                fontWeight: FontWeight.bold,
-                color: Colors.grey,
-                fontSize: 11,
-                letterSpacing: 1,
-              ),
-            ),
+            const SectionLabel('SEMANA ACTUAL', fontSize: 11, letterSpacing: 1),
             const Spacer(),
             Text(
               '${workout.weeklyProgress.values.where((v) => v).length}/7 días',
-              style: const TextStyle(
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
                   fontSize: 11,
                   color: AppColors.primary,
                   fontWeight: FontWeight.bold),
@@ -445,6 +422,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
   }
 
   Widget _dayBubble(String day, bool done, bool isToday) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     Color bg;
     Color fg;
     if (done) {
@@ -455,7 +433,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       fg = AppColors.primary;
     } else {
       bg = Theme.of(context).colorScheme.surfaceContainerHighest;
-      fg = Colors.grey;
+      fg = muted;
     }
 
     return Column(
@@ -476,7 +454,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 ? Icon(Icons.check_rounded, size: 18, color: fg)
                 : Text(
                     day[0],
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
                         fontWeight: FontWeight.bold, fontSize: 13, color: fg),
                   ),
           ),
@@ -484,9 +462,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
         const SizedBox(height: 5),
         Text(
           day,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontSize: 8,
-            color: isToday ? AppColors.primary : Colors.grey,
+            color: isToday ? AppColors.primary : muted,
             fontWeight: isToday ? FontWeight.bold : FontWeight.normal,
           ),
         ),
@@ -730,23 +708,23 @@ class _ActiveSessionBanner extends StatelessWidget {
                 height: 36,
                 decoration: BoxDecoration(
                   color: AppColors.primary,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(AppRadii.sm),
                 ),
                 child: const Icon(Icons.fitness_center_rounded,
                     size: 18, color: Colors.black87),
               ),
               const SizedBox(width: 12),
-              const Expanded(
+              Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Sesión activa',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
                             fontWeight: FontWeight.w800,
                             fontSize: 13,
                             color: AppColors.primary)),
                     Text('Toca para continuar tu entrenamiento',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
                             fontSize: 11, color: AppColors.primary)),
                   ],
                 ),
@@ -824,7 +802,7 @@ class _DashboardSkeletonState extends State<_DashboardSkeleton>
                     const SizedBox(height: 8),
                     _box(160, 22, Colors.white.withValues(alpha: _anim.value * 0.2)),
                     const SizedBox(height: 14),
-                    _box(130, 26, Colors.white.withValues(alpha: _anim.value * 0.12), radius: 20),
+                    _box(130, 26, Colors.white.withValues(alpha: _anim.value * 0.12), radius: AppRadii.lg),
                   ],
                 ),
               ),
@@ -896,7 +874,7 @@ class _DashboardSkeletonState extends State<_DashboardSkeleton>
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
           color: block,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(AppRadii.lg),
         ),
       );
 }
@@ -977,7 +955,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
       content: Text(ok ? 'Perfil actualizado' : 'Error al guardar'),
       backgroundColor: ok ? AppColors.primary : Colors.red.shade400,
       behavior: SnackBarBehavior.floating,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
       margin: const EdgeInsets.all(16),
     ));
   }
@@ -992,7 +970,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
       builder: (_, scroll) => Container(
         decoration: BoxDecoration(
           color: scheme.surface,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(AppRadii.xl)),
         ),
         child: Column(
           children: [
@@ -1010,8 +988,9 @@ class _ProfileSheetState extends State<_ProfileSheet> {
               padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Row(
                 children: [
-                  const Text('MI PERFIL',
-                      style: TextStyle(fontWeight: FontWeight.w900, fontSize: 18)),
+                  Text('MI PERFIL',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.w900, fontSize: 18)),
                   const Spacer(),
                   if (_saving)
                     const SizedBox(width: 20, height: 20,
@@ -1023,10 +1002,11 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                         backgroundColor: AppColors.primary,
                         foregroundColor: Colors.black,
                         padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
                       ),
-                      child: const Text('GUARDAR',
-                          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                      child: Text('GUARDAR',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              fontWeight: FontWeight.bold, fontSize: 13)),
                     ),
                 ],
               ),
@@ -1038,7 +1018,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                 controller: scroll,
                 padding: const EdgeInsets.fromLTRB(24, 12, 24, 32),
                 children: [
-                  _sectionLabel('MEDIDAS CORPORALES'),
+                  const SectionLabel('MEDIDAS CORPORALES', letterSpacing: 1.4),
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(child: _numField(_heightCtrl,  'Talla (cm)',  Icons.height_rounded)),
@@ -1049,7 +1029,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   _numField(_goalCtrl, 'Peso objetivo (kg)', Icons.flag_outlined),
                   const SizedBox(height: 24),
 
-                  _sectionLabel('FECHA DE NACIMIENTO'),
+                  const SectionLabel('FECHA DE NACIMIENTO', letterSpacing: 1.4),
                   const SizedBox(height: 12),
                   GestureDetector(
                     onTap: _pickDate,
@@ -1057,7 +1037,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                       decoration: BoxDecoration(
                         border: Border.all(color: scheme.outline.withValues(alpha: 0.4)),
-                        borderRadius: BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(AppRadii.sm),
                       ),
                       child: Row(
                         children: [
@@ -1084,7 +1064,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   ),
                   const SizedBox(height: 24),
 
-                  _sectionLabel('GÉNERO'),
+                  const SectionLabel('GÉNERO', letterSpacing: 1.4),
                   const SizedBox(height: 12),
                   Row(children: [
                     Expanded(child: _genderChip('male',   'Masculino', Icons.male_rounded)),
@@ -1093,7 +1073,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
                   ]),
                   const SizedBox(height: 24),
 
-                  _sectionLabel('NIVEL DE ACTIVIDAD'),
+                  const SectionLabel('NIVEL DE ACTIVIDAD', letterSpacing: 1.4),
                   const SizedBox(height: 12),
                   ..._activities.map((a) => _activityTile(a.$1, a.$2, a.$3)),
                   const SizedBox(height: 8),
@@ -1106,16 +1086,6 @@ class _ProfileSheetState extends State<_ProfileSheet> {
     );
   }
 
-  Widget _sectionLabel(String text) => Text(
-    text,
-    style: TextStyle(
-      fontSize: 10,
-      fontWeight: FontWeight.bold,
-      color: Theme.of(context).colorScheme.onSurfaceVariant,
-      letterSpacing: 1.4,
-    ),
-  );
-
   Widget _numField(TextEditingController ctrl, String label, IconData icon) =>
       TextField(
         controller: ctrl,
@@ -1124,7 +1094,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
           labelText: label,
           prefixIcon: Icon(icon, size: 20),
           contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(AppRadii.sm)),
         ),
       );
 
@@ -1138,7 +1108,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected ? color.withValues(alpha: 0.12) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
           border: Border.all(
             color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
             width: selected ? 1.5 : 1,
@@ -1147,7 +1117,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
         child: Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 20, color: selected ? color : Colors.grey),
+            Icon(icon, size: 20, color: selected ? color : Theme.of(context).colorScheme.onSurfaceVariant),
             const SizedBox(width: 8),
             Text(label,
                 style: TextStyle(
@@ -1171,7 +1141,7 @@ class _ProfileSheetState extends State<_ProfileSheet> {
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         decoration: BoxDecoration(
           color: selected ? color.withValues(alpha: 0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(AppRadii.sm),
           border: Border.all(
             color: selected ? color : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
             width: selected ? 1.5 : 1,

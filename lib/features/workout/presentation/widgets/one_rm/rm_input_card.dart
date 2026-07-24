@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/core/widgets/section_label.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/one_rm_controller.dart';
 
@@ -63,7 +64,7 @@ class RmInputCard extends StatelessWidget {
                   foregroundColor: Colors.black,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(AppRadii.sm)),
                 ),
                 child: const Text('CALCULAR',
                     style: TextStyle(

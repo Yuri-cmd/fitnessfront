@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/section_label.dart';
 import 'package:fit_tracker_app/features/workout/data/models/routine_model.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/workout_controller.dart';
 import 'package:fit_tracker_app/features/workout/presentation/widgets/create_routine/exercise_picker_sheet.dart';
@@ -89,8 +91,9 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
 
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      shape: RoundedRectangleBorder(
+        borderRadius:
+            BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
       ),
       builder: (ctx) => SafeArea(
         child: Column(
@@ -101,7 +104,7 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
               width: 36,
               height: 4,
               decoration: BoxDecoration(
-                color: Colors.grey.shade300,
+                color: Theme.of(ctx).colorScheme.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
@@ -320,7 +323,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _SectionLabel('SERIES EFECTIVAS'),
+            const SectionLabel('SERIES EFECTIVAS'),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -351,7 +355,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            const _SectionLabel('SERIES DE APROXIMACIÓN'),
+            const SectionLabel('SERIES DE APROXIMACIÓN'),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -375,7 +380,8 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
               ],
             ),
             const SizedBox(height: 20),
-            const _SectionLabel('DESCANSO ENTRE SERIES'),
+            const SectionLabel('DESCANSO ENTRE SERIES'),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -485,24 +491,6 @@ class _CreateRoutineScreenState extends State<CreateRoutineScreen> {
 
 // ── Private widgets ───────────────────────────────────────────────────────────
 
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Text(text,
-          style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.bold,
-              color: AppColors.primary,
-              letterSpacing: 1)),
-    );
-  }
-}
-
 class _EmptyExercises extends StatelessWidget {
   const _EmptyExercises();
 
@@ -591,7 +579,7 @@ class _ExerciseTile extends StatelessWidget {
                             decoration: BoxDecoration(
                               color:
                                   AppColors.primary.withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(AppRadii.lg),
                               border: Border.all(
                                   color: AppColors.primary
                                       .withValues(alpha: 0.25)),

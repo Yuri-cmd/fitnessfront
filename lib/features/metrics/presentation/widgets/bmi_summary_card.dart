@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/features/metrics/presentation/controllers/fitness_controller.dart';
 
 class BmiSummaryCard extends StatelessWidget {
@@ -13,7 +14,7 @@ class BmiSummaryCard extends StatelessWidget {
           padding: const EdgeInsets.all(20),
           decoration: BoxDecoration(
             color: AppColors.primary.withValues(alpha: 0.1),
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(AppRadii.lg),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,

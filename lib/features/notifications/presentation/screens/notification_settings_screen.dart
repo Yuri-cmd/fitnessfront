@@ -99,7 +99,7 @@ class NotificationSettingsScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _MotivationSection(
               icon: Icons.wb_sunny_rounded,
-              color: Colors.orange,
+              color: AppColors.warning,
               title: 'Motivación mañanera',
               subtitle: 'Una frase para arrancar el día con energía',
               switchLabel: 'Activar motivación matutina',
@@ -111,7 +111,7 @@ class NotificationSettingsScreen extends StatelessWidget {
             const SizedBox(height: 20),
             _MotivationSection(
               icon: Icons.nightlight_round,
-              color: Colors.deepPurple,
+              color: AppColors.supersetAccent,
               title: 'Motivación nocturna',
               subtitle: 'Te felicitamos si entrenaste, te animamos si no',
               switchLabel: 'Activar motivación nocturna',

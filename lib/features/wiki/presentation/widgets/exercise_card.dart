@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/features/workout/data/models/exercise_model.dart';
 
 class ExerciseCard extends StatelessWidget {
@@ -12,7 +13,8 @@ class ExerciseCard extends StatelessWidget {
     final muscle = exercise.muscleGroup;
     return Card(
       margin: const EdgeInsets.only(bottom: 10),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(AppRadii.lg)),
       elevation: 0,
       child: ListTile(
         contentPadding:

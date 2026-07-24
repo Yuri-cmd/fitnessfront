@@ -16,22 +16,19 @@ class EmptyStateView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final muted = Theme.of(context).colorScheme.onSurfaceVariant;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(icon, size: 80, color: Colors.grey.withValues(alpha: 0.3)),
+          Icon(icon, size: 80, color: muted.withValues(alpha: 0.4)),
           const SizedBox(height: 16),
           Text(
             title,
-            style: const TextStyle(
-              fontSize: 18,
-              color: Colors.grey,
-              fontWeight: FontWeight.bold,
-            ),
+            style: Theme.of(context).textTheme.titleMedium?.copyWith(color: muted),
           ),
           const SizedBox(height: 4),
-          Text(subtitle, style: const TextStyle(color: Colors.grey)),
+          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: muted)),
           if (action != null) ...[
             const SizedBox(height: 16),
             action!,

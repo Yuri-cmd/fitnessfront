@@ -34,7 +34,7 @@ class ReorderSheet extends GetView<TrainingSessionController> {
                     height: 4,
                     margin: const EdgeInsets.only(bottom: 16),
                     decoration: BoxDecoration(
-                        color: Colors.grey.shade300,
+                        color: Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(2))),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -90,16 +90,16 @@ class ReorderSheet extends GetView<TrainingSessionController> {
                                   const EdgeInsets.fromLTRB(4, 8, 0, 2),
                               child: Row(
                                 children: [
-                                  Icon(Icons.link_rounded,
+                                  const Icon(Icons.link_rounded,
                                       size: 11,
-                                      color: Colors.purple.shade600),
+                                      color: AppColors.supersetAccent),
                                   const SizedBox(width: 4),
                                   Text(
                                     'SS $ssOrdinal',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
-                                      color: Colors.purple.shade600,
+                                      color: AppColors.supersetAccent,
                                       letterSpacing: 0.5,
                                     ),
                                   ),
@@ -119,7 +119,7 @@ class ReorderSheet extends GetView<TrainingSessionController> {
                                       bottom: isLastInGroup ? 4 : 0,
                                     ),
                                     decoration: BoxDecoration(
-                                      color: Colors.purple
+                                      color: AppColors.supersetAccent
                                           .withValues(alpha: 0.35),
                                       borderRadius: isLastInGroup
                                           ? const BorderRadius.vertical(

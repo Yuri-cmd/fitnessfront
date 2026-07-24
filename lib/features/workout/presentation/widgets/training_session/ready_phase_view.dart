@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/theme/app_shadows.dart';
+import 'package:fit_tracker_app/core/widgets/app_card.dart';
+import 'package:fit_tracker_app/core/widgets/app_pill.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/training_session_controller.dart';
 
 class ReadyPhaseView extends GetView<TrainingSessionController> {
@@ -8,6 +12,7 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return Obx(() {
       final ex = controller.currentEx;
       if (ex == null) return const SizedBox();
@@ -31,13 +36,8 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
             width: double.infinity,
             decoration: BoxDecoration(
               color: Theme.of(context).colorScheme.surface,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.10),
-                    blurRadius: 18,
-                    offset: const Offset(0, 4))
-              ],
+              borderRadius: BorderRadius.circular(AppRadii.lg),
+              boxShadow: AppShadows.card(dark: isDark),
             ),
             child: Column(
               children: [
@@ -59,80 +59,28 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
                                 color: AppColors.primary),
                           ),
                           if (numWarmup > 0)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: isWarmup
-                                    ? AppColors.warning.withValues(alpha: 0.15)
-                                    : AppColors.primary.withValues(alpha: 0.1),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isWarmup
-                                    ? 'APROX. $warmupNum/$numWarmup'
-                                    : 'EFECTIVA $workingNum/$numWorking',
-                                style: TextStyle(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  color: isWarmup
-                                      ? AppColors.warning
-                                      : AppColors.primary,
-                                ),
-                              ),
+                            AppPill(
+                              label: isWarmup
+                                  ? 'APROX. $warmupNum/$numWarmup'
+                                  : 'EFECTIVA $workingNum/$numWorking',
+                              color: isWarmup
+                                  ? AppColors.warning
+                                  : AppColors.primary,
+                              fontSize: 11,
                             ),
                           if (controller.isInSuperset)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.supersetAccent
-                                    .withValues(alpha: 0.12),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.link_rounded,
-                                      size: 11,
-                                      color: AppColors.supersetAccent),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    'SUPERSERIE',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.supersetAccent,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            AppPill(
+                              label: 'SUPERSERIE',
+                              color: AppColors.supersetAccent,
+                              icon: Icons.link_rounded,
+                              fontSize: 11,
                             ),
                           if (isLastWorkingSet)
-                            Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: AppColors.warning.withValues(alpha: 0.15),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.local_fire_department,
-                                      size: 11,
-                                      color: AppColors.warning),
-                                  const SizedBox(width: 3),
-                                  Text(
-                                    '¡ÚLTIMA!',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: AppColors.warning,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                            AppPill(
+                              label: '¡ÚLTIMA!',
+                              color: AppColors.warning,
+                              icon: Icons.local_fire_department,
+                              fontSize: 11,
                             ),
                         ],
                       ),
@@ -427,12 +375,9 @@ class ReadyPhaseView extends GetView<TrainingSessionController> {
   }
 
   Widget _buildDoneList(BuildContext context) {
-    return Container(
+    return AppCard(
       padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-      ),
+      bordered: true,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

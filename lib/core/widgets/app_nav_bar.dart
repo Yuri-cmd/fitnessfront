@@ -22,11 +22,12 @@ class AppNavBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
     return Container(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 12),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
       decoration: BoxDecoration(
-        color: isDark ? const Color(0xFF1C1C1E) : Colors.white,
+        color: colorScheme.surface,
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
@@ -69,6 +70,7 @@ class _NavItemWidget extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -102,16 +104,16 @@ class _NavItemWidget extends StatelessWidget {
                 key: ValueKey(isActive),
                 size: 22,
                 color: isActive
-                    ? Colors.white
-                    : Colors.grey.withValues(alpha: 0.65),
+                    ? colorScheme.onPrimary
+                    : colorScheme.onSurfaceVariant,
               ),
             ),
             if (isActive) ...[
               const SizedBox(width: 6),
               Text(
                 item.label,
-                style: const TextStyle(
-                  color: Colors.white,
+                style: TextStyle(
+                  color: colorScheme.onPrimary,
                   fontWeight: FontWeight.w700,
                   fontSize: 12,
                   letterSpacing: 0.3,

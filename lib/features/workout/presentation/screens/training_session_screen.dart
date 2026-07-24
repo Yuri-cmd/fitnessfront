@@ -32,7 +32,7 @@ class TrainingSessionScreen extends StatelessWidget {
         await _doExit();
       },
       child: Scaffold(
-        backgroundColor: const Color(0xFFEEEEEE),
+        backgroundColor: Theme.of(context).colorScheme.surface,
         body: SafeArea(
           child: Obx(() => AnimatedSwitcher(
             duration: const Duration(milliseconds: 480),

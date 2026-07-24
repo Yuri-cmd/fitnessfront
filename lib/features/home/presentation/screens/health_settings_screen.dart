@@ -2,6 +2,9 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fit_tracker_app/core/services/health_service.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
+import 'package:fit_tracker_app/core/widgets/app_pill.dart';
+import 'package:fit_tracker_app/core/widgets/section_label.dart';
 
 class HealthSettingsScreen extends StatefulWidget {
   const HealthSettingsScreen({super.key});
@@ -57,7 +60,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
               color: const Color(0xFFFF3B5C).withValues(alpha: 0.08),
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(AppRadii.md),
             ),
             child: Row(
               children: [
@@ -65,7 +68,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: const Color(0xFFFF3B5C).withValues(alpha: 0.12),
-                    borderRadius: BorderRadius.circular(14),
+                    borderRadius: BorderRadius.circular(AppRadii.sm),
                   ),
                   child: const Icon(Icons.favorite_rounded,
                       color: Color(0xFFFF3B5C), size: 28),
@@ -91,7 +94,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
           ),
 
           const SizedBox(height: 24),
-          const _SectionLabel('DATOS QUE POWER STACK ESCRIBE EN APPLE HEALTH'),
+          const SectionLabel('DATOS QUE POWER STACK ESCRIBE EN APPLE HEALTH'),
           const SizedBox(height: 10),
           const _HealthDataTile(
             icon: Icons.fitness_center_rounded,
@@ -109,7 +112,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
           ),
 
           const SizedBox(height: 20),
-          const _SectionLabel('DATOS QUE POWER STACK LEE DE APPLE HEALTH'),
+          const SectionLabel('DATOS QUE POWER STACK LEE DE APPLE HEALTH'),
           const SizedBox(height: 10),
           const _HealthDataTile(
             icon: Icons.directions_walk_rounded,
@@ -155,7 +158,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
                           backgroundColor: AppColors.primary,
                           minimumSize: const Size(double.infinity, 50),
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                            borderRadius: BorderRadius.circular(AppRadii.sm),
                           ),
                         ),
                       ),
@@ -176,7 +179,7 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.08),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(AppRadii.sm),
         border: Border.all(color: AppColors.primary.withValues(alpha: 0.2)),
       ),
       child: Row(
@@ -202,24 +205,6 @@ class _HealthSettingsScreenState extends State<HealthSettingsScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-  const _SectionLabel(this.text);
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: const TextStyle(
-        fontSize: 10,
-        fontWeight: FontWeight.bold,
-        color: AppColors.primary,
-        letterSpacing: 1,
       ),
     );
   }
@@ -251,7 +236,7 @@ class _HealthDataTile extends StatelessWidget {
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
               color: color.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(AppRadii.sm),
             ),
             child: Icon(icon, color: color, size: 20),
           ),
@@ -267,27 +252,18 @@ class _HealthDataTile extends StatelessWidget {
                           style: const TextStyle(
                               fontWeight: FontWeight.w600, fontSize: 13)),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: Colors.grey.shade100,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        access,
-                        style: TextStyle(
-                            fontSize: 9,
-                            color: Colors.grey.shade600,
-                            fontWeight: FontWeight.w500),
-                      ),
+                    AppPill(
+                      label: access,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      fontSize: 9,
                     ),
                   ],
                 ),
                 const SizedBox(height: 2),
                 Text(detail,
-                    style:
-                        TextStyle(fontSize: 11, color: Colors.grey.shade600)),
+                    style: TextStyle(
+                        fontSize: 11,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant)),
               ],
             ),
           ),

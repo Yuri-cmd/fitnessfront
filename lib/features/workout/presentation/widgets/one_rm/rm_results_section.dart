@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/core/widgets/section_label.dart';
 import 'package:fit_tracker_app/features/workout/presentation/controllers/one_rm_controller.dart';
 
@@ -152,7 +153,7 @@ class _TableHeader extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius:
-            const BorderRadius.vertical(top: Radius.circular(16)),
+            const BorderRadius.vertical(top: Radius.circular(AppRadii.lg)),
       ),
       child: const Row(
         children: [

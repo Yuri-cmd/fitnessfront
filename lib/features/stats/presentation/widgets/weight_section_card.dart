@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:intl/intl.dart';
 import 'package:fit_tracker_app/core/theme/app_colors.dart';
+import 'package:fit_tracker_app/core/theme/app_radii.dart';
 import 'package:fit_tracker_app/features/stats/data/models/stats_models.dart';
 import 'package:fit_tracker_app/features/stats/presentation/controllers/stats_controller.dart';
 
@@ -162,8 +163,8 @@ class StatsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Card(
         margin: EdgeInsets.zero,
-        shape:
-            RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(AppRadii.lg)),
         child: Padding(padding: const EdgeInsets.all(20), child: child),
       );
 }
